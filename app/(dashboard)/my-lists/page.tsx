@@ -50,6 +50,14 @@ export default async function MyListsPage() {
       <h1 className="mb-8 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
         My lists
       </h1>
+      <div className="mb-8">
+        <Link
+          href="/identify"
+          className="inline-flex items-center rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          Scan or identify a tea
+        </Link>
+      </div>
 
       <section className="mb-12">
         <h2 className="mb-6 text-xl font-semibold text-zinc-900 dark:text-zinc-100">

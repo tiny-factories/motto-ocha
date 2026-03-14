@@ -1,5 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions, canAccessExpertData } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TeaCard } from "@/components/TeaCard";
 
@@ -8,6 +10,15 @@ export default async function VendorDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    redirect("/login");
+  }
+  const role = (session.user as { role?: string }).role;
+  if (!canAccessExpertData(role)) {
+    redirect("/");
+  }
+
   const { id } = await params;
   const vendor = await prisma.vendor.findUnique({
     where: { id },
@@ -75,7 +86,7 @@ export default async function VendorDetailPage({
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {teas.map((tea) => (
-              <TeaCard key={tea.id} tea={tea} />
+                <TeaCard key={tea.id} tea={tea} showVendorInfo />
             ))}
           </div>
         )}

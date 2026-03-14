@@ -9,6 +9,8 @@ datasource db {
 
 enum UserRole {
   user
+  reviewer
+  expert
   admin
 }
 
@@ -24,6 +26,9 @@ model User {
   sessions      Session[]
   userTeas      UserTea[]
   lists         List[]
+  teaReviews    TeaReview[]
+  brewProfiles  UserTeaBrewProfile[]
+  mocktails     Mocktail[]
 }
 
 model Account {
@@ -85,6 +90,7 @@ model Vendor {
   description String?     @db.Text
   scale       String?     // "commercial" | "independent"
   teas        VendorTea[]
+  teaReviews  TeaReview[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -155,6 +161,12 @@ model Tea {
   userTeas          UserTea[]
   vendorTeas        VendorTea[]
   listTeas          ListTea[]
+  aliases           TeaAlias[]
+  barcodes          TeaBarcode[]
+  teaReviews        TeaReview[]
+  brewGuide         TeaBrewGuide?
+  brewProfiles      UserTeaBrewProfile[]
+  mocktails         Mocktail[]
   teaTasteTags      TeaTasteTag[]
   categoryAssignments TeaCategoryAssignment[]
   createdAt         DateTime    @default(now())
@@ -207,4 +219,153 @@ model VendorTea {
   tea      Tea    @relation(fields: [teaId], references: [id], onDelete: Cascade)
 
   @@id([vendorId, teaId])
+}
+
+model TeaAlias {
+  id        String   @id @default(cuid())
+  teaId     String
+  value     String
+  language  String?
+  tea       Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teaId, value])
+  @@index([value])
+}
+
+model TeaBarcode {
+  id        String   @id @default(cuid())
+  teaId     String
+  code      String   @unique
+  format    String?
+  tea       Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teaId])
+}
+
+model TeaReview {
+  id           String   @id @default(cuid())
+  userId       String
+  teaId        String
+  vendorId     String?
+  rating       Int?
+  review       String?  @db.Text
+  locationName String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tea          Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  vendor       Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, teaId])
+  @@index([teaId])
+  @@index([vendorId])
+}
+
+model TeaBrewGuide {
+  id           String             @id @default(cuid())
+  teaId        String             @unique
+  leafGrams    Float?
+  waterMl      Int?
+  temperatureC Int?
+  notes        String?            @db.Text
+  tea          Tea                @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  infusions    TeaBrewGuideStep[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model TeaBrewGuideStep {
+  id             String       @id @default(cuid())
+  guideId        String
+  infusionNumber Int
+  steepSeconds   Int
+  note           String?
+  guide          TeaBrewGuide @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([guideId, infusionNumber])
+  @@index([guideId])
+}
+
+model UserTeaBrewProfile {
+  id           String             @id @default(cuid())
+  userId       String
+  teaId        String
+  leafGrams    Float?
+  waterMl      Int?
+  temperatureC Int?
+  notes        String?            @db.Text
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tea          Tea                @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  infusions    UserTeaBrewStep[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([userId, teaId])
+  @@index([teaId])
+}
+
+model UserTeaBrewStep {
+  id             String             @id @default(cuid())
+  profileId      String
+  infusionNumber Int
+  steepSeconds   Int
+  note           String?
+  profile        UserTeaBrewProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([profileId, infusionNumber])
+  @@index([profileId])
+}
+
+model Mocktail {
+  id          String               @id @default(cuid())
+  name        String
+  slug        String               @unique
+  description String?              @db.Text
+  teaId       String?
+  createdById String?
+  tea         Tea?                 @relation(fields: [teaId], references: [id], onDelete: SetNull)
+  createdBy   User?                @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  ingredients MocktailIngredient[]
+  steps       MocktailStep[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([teaId])
+  @@index([createdById])
+}
+
+model MocktailIngredient {
+  id         String   @id @default(cuid())
+  mocktailId String
+  name       String
+  amount     String?
+  unit       String?
+  sortOrder  Int      @default(1)
+  mocktail   Mocktail @relation(fields: [mocktailId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([mocktailId])
+}
+
+model MocktailStep {
+  id              String   @id @default(cuid())
+  mocktailId      String
+  stepNumber      Int
+  instruction     String   @db.Text
+  durationSeconds Int?
+  mocktail        Mocktail @relation(fields: [mocktailId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([mocktailId, stepNumber])
+  @@index([mocktailId])
 }

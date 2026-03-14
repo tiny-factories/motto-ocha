@@ -15,6 +15,20 @@ export default async function EditTeaPage({
         vendorTeas: { select: { vendorId: true } },
         teaTasteTags: { orderBy: { rank: "asc" }, select: { tasteTagId: true } },
         categoryAssignments: { select: { teaCategoryId: true } },
+        aliases: { select: { value: true }, orderBy: { value: "asc" } },
+        barcodes: { select: { code: true }, orderBy: { code: "asc" } },
+        brewGuide: {
+          select: {
+            leafGrams: true,
+            waterMl: true,
+            temperatureC: true,
+            notes: true,
+            infusions: {
+              select: { steepSeconds: true },
+              orderBy: { infusionNumber: "asc" },
+            },
+          },
+        },
       },
     }),
     prisma.farm.findMany({ orderBy: { nameNative: "asc" } }),
@@ -36,6 +50,14 @@ export default async function EditTeaPage({
           vendorIds: tea.vendorTeas.map((vt) => vt.vendorId),
           tasteTagIds: tea.teaTasteTags.map((tt) => tt.tasteTagId),
           categoryIds: tea.categoryAssignments.map((a) => a.teaCategoryId),
+          alternativeNames: tea.aliases.map((alias) => alias.value),
+          barcodes: tea.barcodes.map((barcode) => barcode.code),
+          defaultLeafGrams: tea.brewGuide?.leafGrams ?? null,
+          defaultWaterMl: tea.brewGuide?.waterMl ?? null,
+          defaultTemperatureC: tea.brewGuide?.temperatureC ?? null,
+          defaultBrewNotes: tea.brewGuide?.notes ?? null,
+          defaultInfusionSeconds:
+            tea.brewGuide?.infusions.map((step) => step.steepSeconds) ?? [],
         }}
         farms={farms}
         vendors={vendors}

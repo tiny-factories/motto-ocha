@@ -2,6 +2,15 @@
 
 Tea index: vendors, farms, and teas. Native-language names with English labels. User accounts can track “tried” and “want to try”; admin can add and edit teas (with image and 3D GLB uploads to MinIO).
 
+New tracking features:
+- **Tea identification** (`/identify`): scan barcodes live, detect barcode from uploaded/taken photos, or search by label text (including native-language aliases) and match to catalog teas.
+- **Personal tea notes** (on each tea page): save your rating, review notes, vendor/brand, and where you drank or bought that tea (e.g. specific cafe/shop).
+- **Brew guidance + personal brew profile** (on each tea page): each tea can have default multi-infusion instructions (leaf/water/temp/steep sequence), and each user can save their own preferred overrides.
+- **Tea mocktails** (`/mocktails`): tea-based mocktail recipes with ingredients and steps.
+
+Access model:
+- Vendor data and mocktail pages are restricted to users with role `admin`, `reviewer`, or `expert`.
+
 ## Teas, farms, and vendors
 
 | Concept   | Meaning                | Link to tea                    |
@@ -10,7 +19,7 @@ Tea index: vendors, farms, and teas. Native-language names with English labels. 
 | **Farm**  | Where it's grown       | Optional: one farm per tea     |
 | **Vendor**| Where you can buy it   | Many-to-many (vendors ↔ teas)  |
 
-- **Tea** — A specific tea (e.g. Gyokuro, Da Hong Pao). Has native + English name, description, location (country/prefecture/region), optional image and 3D models, plus optional: harvest year, single-origin flag, scale (commercial/independent), taste tags, and tea type categories (e.g. Green, Matcha). Can be linked to one farm and many vendors. Users track "tried" / "want to try" and add teas to lists.
+- **Tea** — A specific tea (e.g. Gyokuro, Da Hong Pao). Has native + English name, description, location (country/prefecture/region), optional image and 3D models, plus optional: harvest year, single-origin flag, scale (commercial/independent), taste tags, and tea type categories (e.g. Green, Matcha). Can be linked to one farm and many vendors. Users track "tried" / "want to try", add teas to lists, and save personal brew preferences.
 - **Farm** — Where the tea is grown (grower / estate). One farm can have many teas. Shown as "Farm: 山本園 (Yamamoto-en)" on a tea's page.
 - **Vendor** — A place you can buy tea (shop or website; can also be the brand/importer). Many-to-many with teas: one tea can be sold by many vendors, one vendor can sell many teas. Shown as "Imported by: …" on a tea's page and listed on `/vendors`.
 
@@ -66,7 +75,7 @@ npm run start
 ## Admin
 
 - Sign up at /signup, then sign in at /login. Add your email to `ADMIN_EMAILS` (or set `role = 'admin'` in the `User` table) to access `/admin`.
-- In admin you can create/edit **Teas** (with image and 3D tea/packaging GLB uploads, taste tags, tea categories, year, single-origin, scale, location), **Farms**, **Vendors**, **Tea categories** (e.g. Green, Matcha), and **Taste tags** (e.g. mellow, nutty). Location fields support a searchable autocomplete (tea-growing regions). Run `npx prisma db seed` to seed default taste tags and tea categories.
+- In admin you can create/edit **Teas** (with image and 3D tea/packaging GLB uploads, taste tags, tea categories, year, single-origin, scale, location, **alternative native-language names**, **barcodes**, and **default brew instructions**), **Farms**, **Vendors**, **Mocktails**, **Tea categories** (e.g. Green, Matcha), and **Taste tags** (e.g. mellow, nutty). Location fields support a searchable autocomplete (tea-growing regions). Run `npx prisma db seed` to seed default taste tags and tea categories.
 
 ## 3D models
 
