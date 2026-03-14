@@ -115,6 +115,18 @@ export async function PATCH(
     brewTemperatureC != null ||
     (typeof defaultBrewNotes === "string" && defaultBrewNotes.trim() !== "") ||
     brewInfusions.length > 0;
+  const safeLeafGrams =
+    typeof brewLeafGrams === "number" && Number.isFinite(brewLeafGrams)
+      ? brewLeafGrams
+      : null;
+  const safeWaterMl =
+    typeof brewWaterMl === "number" && Number.isFinite(brewWaterMl)
+      ? Math.round(brewWaterMl)
+      : null;
+  const safeTemperatureC =
+    typeof brewTemperatureC === "number" && Number.isFinite(brewTemperatureC)
+      ? Math.round(brewTemperatureC)
+      : null;
 
   const tea = await prisma.tea.update({
     where: { id },
@@ -196,22 +208,18 @@ export async function PATCH(
       where: { teaId: id },
       create: {
         teaId: id,
-        leafGrams: Number.isFinite(brewLeafGrams) ? brewLeafGrams : null,
-        waterMl: Number.isFinite(brewWaterMl) ? Math.round(brewWaterMl) : null,
-        temperatureC: Number.isFinite(brewTemperatureC)
-          ? Math.round(brewTemperatureC)
-          : null,
+        leafGrams: safeLeafGrams,
+        waterMl: safeWaterMl,
+        temperatureC: safeTemperatureC,
         notes:
           typeof defaultBrewNotes === "string" && defaultBrewNotes.trim()
             ? defaultBrewNotes.trim()
             : null,
       },
       update: {
-        leafGrams: Number.isFinite(brewLeafGrams) ? brewLeafGrams : null,
-        waterMl: Number.isFinite(brewWaterMl) ? Math.round(brewWaterMl) : null,
-        temperatureC: Number.isFinite(brewTemperatureC)
-          ? Math.round(brewTemperatureC)
-          : null,
+        leafGrams: safeLeafGrams,
+        waterMl: safeWaterMl,
+        temperatureC: safeTemperatureC,
         notes:
           typeof defaultBrewNotes === "string" && defaultBrewNotes.trim()
             ? defaultBrewNotes.trim()

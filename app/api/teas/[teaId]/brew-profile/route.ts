@@ -76,6 +76,16 @@ export async function PUT(
     Number.isFinite(temperatureC) ||
     Boolean(notes) ||
     infusionSeconds.length > 0;
+  const safeLeafGrams =
+    typeof leafGrams === "number" && Number.isFinite(leafGrams) ? leafGrams : null;
+  const safeWaterMl =
+    typeof waterMl === "number" && Number.isFinite(waterMl)
+      ? Math.round(waterMl)
+      : null;
+  const safeTemperatureC =
+    typeof temperatureC === "number" && Number.isFinite(temperatureC)
+      ? Math.round(temperatureC)
+      : null;
 
   if (!hasData) {
     await prisma.userTeaBrewProfile.deleteMany({ where: { userId, teaId } });
@@ -87,15 +97,15 @@ export async function PUT(
     create: {
       userId,
       teaId,
-      leafGrams: Number.isFinite(leafGrams) ? leafGrams : null,
-      waterMl: Number.isFinite(waterMl) ? Math.round(waterMl) : null,
-      temperatureC: Number.isFinite(temperatureC) ? Math.round(temperatureC) : null,
+      leafGrams: safeLeafGrams,
+      waterMl: safeWaterMl,
+      temperatureC: safeTemperatureC,
       notes,
     },
     update: {
-      leafGrams: Number.isFinite(leafGrams) ? leafGrams : null,
-      waterMl: Number.isFinite(waterMl) ? Math.round(waterMl) : null,
-      temperatureC: Number.isFinite(temperatureC) ? Math.round(temperatureC) : null,
+      leafGrams: safeLeafGrams,
+      waterMl: safeWaterMl,
+      temperatureC: safeTemperatureC,
       notes,
     },
     include: { infusions: true },

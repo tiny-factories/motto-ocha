@@ -104,6 +104,18 @@ export async function POST(req: Request) {
     brewTemperatureC != null ||
     (typeof defaultBrewNotes === "string" && defaultBrewNotes.trim() !== "") ||
     brewInfusions.length > 0;
+  const safeLeafGrams =
+    typeof brewLeafGrams === "number" && Number.isFinite(brewLeafGrams)
+      ? brewLeafGrams
+      : null;
+  const safeWaterMl =
+    typeof brewWaterMl === "number" && Number.isFinite(brewWaterMl)
+      ? Math.round(brewWaterMl)
+      : null;
+  const safeTemperatureC =
+    typeof brewTemperatureC === "number" && Number.isFinite(brewTemperatureC)
+      ? Math.round(brewTemperatureC)
+      : null;
 
   const tea = await prisma.tea.create({
     data: {
@@ -181,11 +193,9 @@ export async function POST(req: Request) {
     const guide = await prisma.teaBrewGuide.create({
       data: {
         teaId: tea.id,
-        leafGrams: Number.isFinite(brewLeafGrams) ? brewLeafGrams : null,
-        waterMl: Number.isFinite(brewWaterMl) ? Math.round(brewWaterMl) : null,
-        temperatureC: Number.isFinite(brewTemperatureC)
-          ? Math.round(brewTemperatureC)
-          : null,
+        leafGrams: safeLeafGrams,
+        waterMl: safeWaterMl,
+        temperatureC: safeTemperatureC,
         notes:
           typeof defaultBrewNotes === "string" && defaultBrewNotes.trim()
             ? defaultBrewNotes.trim()
