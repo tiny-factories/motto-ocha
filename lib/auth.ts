@@ -86,3 +86,7 @@ export function isAdmin(email: string | null | undefined): boolean {
 export function isAdminByRole(role: string | undefined): boolean {
   return role === "admin";
 }
+
+export function canAccessExpertData(role: string | undefined): boolean {
+  return role === "admin" || role === "reviewer" || role === "expert";
+}

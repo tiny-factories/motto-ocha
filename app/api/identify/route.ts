@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { authOptions, canAccessExpertData } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type MatchPayload = {
@@ -25,14 +25,15 @@ function normalizeText(raw: string): string {
   return raw.trim().replace(/\s+/g, " ");
 }
 
-async function getCurrentUserId(): Promise<string | null> {
+async function getCurrentUser(): Promise<{ id: string; role: string } | null> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) return null;
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { id: true },
+    select: { id: true, role: true },
   });
-  return user?.id ?? null;
+  if (!user) return null;
+  return { id: user.id, role: user.role };
 }
 
 const teaCardSelect = {
@@ -46,10 +47,11 @@ const teaCardSelect = {
 } as const;
 
 export async function POST(req: Request) {
-  const userId = await getCurrentUserId();
-  if (!userId) {
+  const user = await getCurrentUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const canViewVendorInfo = canAccessExpertData(user.role);
 
   const body = await req.json().catch(() => ({}));
   const barcode =
@@ -102,11 +104,16 @@ export async function POST(req: Request) {
         include: { tea: { select: teaCardSelect } },
         take: 10,
       }),
-      prisma.vendorTea.findMany({
-        where: { vendor: { name: { contains: text, mode: "insensitive" } } },
-        include: { tea: { select: teaCardSelect }, vendor: { select: { name: true } } },
-        take: 10,
-      }),
+      canViewVendorInfo
+        ? prisma.vendorTea.findMany({
+            where: { vendor: { name: { contains: text, mode: "insensitive" } } },
+            include: {
+              tea: { select: teaCardSelect },
+              vendor: { select: { name: true } },
+            },
+            take: 10,
+          })
+        : Promise.resolve([]),
       prisma.tea.findMany({
         where: {
           farm: {
@@ -149,7 +156,14 @@ export async function POST(req: Request) {
 
   const matches = Array.from(byTeaId.values())
     .sort((a, b) => b.score - a.score)
-    .slice(0, 12);
+    .slice(0, 12)
+    .map((match) => ({
+      ...match,
+      tea: {
+        ...match.tea,
+        vendorTeas: canViewVendorInfo ? match.tea.vendorTeas : [],
+      },
+    }));
 
   return NextResponse.json({ matches });
 }

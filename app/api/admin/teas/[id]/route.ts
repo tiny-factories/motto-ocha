@@ -40,6 +40,11 @@ export async function PATCH(
     categoryIds,
     alternativeNames,
     barcodes,
+    defaultLeafGrams,
+    defaultWaterMl,
+    defaultTemperatureC,
+    defaultBrewNotes,
+    defaultInfusionSeconds,
   } = body;
 
   if (!nameNative || !slug) {
@@ -86,6 +91,30 @@ export async function PATCH(
       );
     }
   }
+
+  const brewInfusions = Array.isArray(defaultInfusionSeconds)
+    ? defaultInfusionSeconds
+        .map((value: unknown) =>
+          typeof value === "number" ? value : Number.parseInt(String(value), 10)
+        )
+        .filter((value) => Number.isFinite(value) && value > 0)
+    : [];
+  const brewLeafGrams =
+    defaultLeafGrams != null && defaultLeafGrams !== ""
+      ? Number(defaultLeafGrams)
+      : null;
+  const brewWaterMl =
+    defaultWaterMl != null && defaultWaterMl !== "" ? Number(defaultWaterMl) : null;
+  const brewTemperatureC =
+    defaultTemperatureC != null && defaultTemperatureC !== ""
+      ? Number(defaultTemperatureC)
+      : null;
+  const hasBrewGuideData =
+    brewLeafGrams != null ||
+    brewWaterMl != null ||
+    brewTemperatureC != null ||
+    (typeof defaultBrewNotes === "string" && defaultBrewNotes.trim() !== "") ||
+    brewInfusions.length > 0;
 
   const tea = await prisma.tea.update({
     where: { id },
@@ -160,6 +189,47 @@ export async function PATCH(
         code,
       })),
     });
+  }
+
+  if (hasBrewGuideData) {
+    const guide = await prisma.teaBrewGuide.upsert({
+      where: { teaId: id },
+      create: {
+        teaId: id,
+        leafGrams: Number.isFinite(brewLeafGrams) ? brewLeafGrams : null,
+        waterMl: Number.isFinite(brewWaterMl) ? Math.round(brewWaterMl) : null,
+        temperatureC: Number.isFinite(brewTemperatureC)
+          ? Math.round(brewTemperatureC)
+          : null,
+        notes:
+          typeof defaultBrewNotes === "string" && defaultBrewNotes.trim()
+            ? defaultBrewNotes.trim()
+            : null,
+      },
+      update: {
+        leafGrams: Number.isFinite(brewLeafGrams) ? brewLeafGrams : null,
+        waterMl: Number.isFinite(brewWaterMl) ? Math.round(brewWaterMl) : null,
+        temperatureC: Number.isFinite(brewTemperatureC)
+          ? Math.round(brewTemperatureC)
+          : null,
+        notes:
+          typeof defaultBrewNotes === "string" && defaultBrewNotes.trim()
+            ? defaultBrewNotes.trim()
+            : null,
+      },
+    });
+    await prisma.teaBrewGuideStep.deleteMany({ where: { guideId: guide.id } });
+    if (brewInfusions.length > 0) {
+      await prisma.teaBrewGuideStep.createMany({
+        data: brewInfusions.map((steepSeconds: number, index: number) => ({
+          guideId: guide.id,
+          infusionNumber: index + 1,
+          steepSeconds: Math.round(steepSeconds),
+        })),
+      });
+    }
+  } else {
+    await prisma.teaBrewGuide.deleteMany({ where: { teaId: id } });
   }
 
   return NextResponse.json(tea);

@@ -1,22 +1,32 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { getServerSession } from "next-auth";
+import { authOptions, canAccessExpertData } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Viewer3D } from "@/components/Viewer3D";
 import { AddToList } from "@/components/AddToList";
 import { TeaReviewForm } from "@/components/TeaReviewForm";
+import { TeaBrewProfileForm } from "@/components/TeaBrewProfileForm";
 
 export default async function TeaDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const canViewVendorInfo = canAccessExpertData(role);
+
   const { slug } = await params;
   const tea = await prisma.tea.findUnique({
     where: { slug },
     include: {
       farm: true,
       vendorTeas: { include: { vendor: true } },
+      brewGuide: {
+        include: { infusions: { orderBy: { infusionNumber: "asc" } } },
+      },
       teaTasteTags: { orderBy: { rank: "asc" }, include: { tasteTag: true } },
       categoryAssignments: { include: { teaCategory: true } },
     },
@@ -69,7 +79,7 @@ export default async function TeaDetailPage({
               </Link>
             </p>
           )}
-          {tea.vendorTeas.length > 0 && (
+          {canViewVendorInfo && tea.vendorTeas.length > 0 && (
             <p className="mt-1">
               <span className="text-zinc-500 dark:text-zinc-400">
                 Imported by:{" "}
@@ -142,10 +152,34 @@ export default async function TeaDetailPage({
             </h2>
             <TeaReviewForm
               teaId={tea.id}
-              vendors={tea.vendorTeas.map((vt) => ({
-                id: vt.vendor.id,
-                name: vt.vendor.name,
-              }))}
+              vendors={
+                canViewVendorInfo
+                  ? tea.vendorTeas.map((vt) => ({
+                      id: vt.vendor.id,
+                      name: vt.vendor.name,
+                    }))
+                  : []
+              }
+              allowVendorSelection={canViewVendorInfo}
+            />
+          </div>
+          <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/30">
+            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Brewing guide
+            </h2>
+            <TeaBrewProfileForm
+              teaId={tea.id}
+              recommended={{
+                leafGrams: tea.brewGuide?.leafGrams ?? null,
+                waterMl: tea.brewGuide?.waterMl ?? null,
+                temperatureC: tea.brewGuide?.temperatureC ?? null,
+                notes: tea.brewGuide?.notes ?? null,
+                infusions: (tea.brewGuide?.infusions ?? []).map((step) => ({
+                  infusionNumber: step.infusionNumber,
+                  steepSeconds: step.steepSeconds,
+                  note: step.note ?? null,
+                })),
+              }}
             />
           </div>
         </div>

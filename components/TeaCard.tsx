@@ -13,7 +13,13 @@ type Tea = {
   categoryAssignments?: { teaCategory: { id: string; label: string } }[];
 };
 
-export function TeaCard({ tea }: { tea: Tea }) {
+export function TeaCard({
+  tea,
+  showVendorInfo = false,
+}: {
+  tea: Tea;
+  showVendorInfo?: boolean;
+}) {
   const categories = tea.categoryAssignments?.map((a) => a.teaCategory.label) ?? [];
   const tasteLabels = tea.teaTasteTags?.map((tt) => tt.tasteTag.label) ?? [];
 
@@ -52,7 +58,7 @@ export function TeaCard({ tea }: { tea: Tea }) {
             {tea.year && (categories.length > 0 ? ` · ${tea.year}` : `${tea.year} harvest`)}
           </p>
         )}
-        {(tea.farm || (tea.vendorTeas && tea.vendorTeas.length > 0)) && (
+        {(tea.farm || (showVendorInfo && tea.vendorTeas && tea.vendorTeas.length > 0)) && (
           <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
             {tea.farm && (
               <Link
@@ -63,8 +69,8 @@ export function TeaCard({ tea }: { tea: Tea }) {
                 {tea.farm.nameNative}
               </Link>
             )}
-            {tea.farm && tea.vendorTeas?.length ? " · " : null}
-            {tea.vendorTeas?.length
+            {tea.farm && showVendorInfo && tea.vendorTeas?.length ? " · " : null}
+            {showVendorInfo && tea.vendorTeas?.length
               ? tea.vendorTeas.map((vt) => vt.vendor.name).join(", ")
               : null}
           </p>

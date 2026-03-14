@@ -1,9 +1,15 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions, canAccessExpertData } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TeaCard } from "@/components/TeaCard";
 import { FarmCard } from "@/components/FarmCard";
 
 export default async function HomePage() {
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const canViewRestrictedData = canAccessExpertData(role);
+
   let teas: Awaited<ReturnType<typeof prisma.tea.findMany>> = [];
   let farms: Awaited<ReturnType<typeof prisma.farm.findMany>> = [];
   let vendors: Awaited<
@@ -16,7 +22,7 @@ export default async function HomePage() {
   let dbError = false;
 
   try {
-    [teas, farms, vendors] = await Promise.all([
+    [teas, farms] = await Promise.all([
       prisma.tea.findMany({
         take: 6,
         orderBy: { updatedAt: "desc" },
@@ -30,12 +36,14 @@ export default async function HomePage() {
         orderBy: { nameNative: "asc" },
         include: { _count: { select: { teas: true } } },
       }),
-      prisma.vendor.findMany({
+    ]);
+    if (canViewRestrictedData) {
+      vendors = await prisma.vendor.findMany({
         take: 6,
         orderBy: { name: "asc" },
         include: { _count: { select: { teas: true } } },
-      }),
-    ]);
+      });
+    }
   } catch {
     dbError = true;
   }
@@ -101,43 +109,45 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section>
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-            Vendors
-          </h2>
-          <Link
-            href="/vendors"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            View all
-          </Link>
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {vendors.map((vendor) => (
+      {canViewRestrictedData && (
+        <section>
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+              Vendors
+            </h2>
             <Link
-              key={vendor.id}
-              href={`/vendors/${vendor.id}`}
-              className="block rounded-lg border border-zinc-200 bg-white p-6 transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+              href="/vendors"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
             >
-              <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
-                {vendor.name}
-              </h3>
-              {vendor.description && (
-                <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  {vendor.description}
-                </p>
-              )}
-              <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
-                {vendor._count.teas} tea{vendor._count.teas !== 1 ? "s" : ""}
-              </p>
+              View all
             </Link>
-          ))}
-        </div>
-        {vendors.length === 0 && (
-          <p className="text-zinc-500 dark:text-zinc-400">No vendors yet.</p>
-        )}
-      </section>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {vendors.map((vendor) => (
+              <Link
+                key={vendor.id}
+                href={`/vendors/${vendor.id}`}
+                className="block rounded-lg border border-zinc-200 bg-white p-6 transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+              >
+                <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
+                  {vendor.name}
+                </h3>
+                {vendor.description && (
+                  <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    {vendor.description}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+                  {vendor._count.teas} tea{vendor._count.teas !== 1 ? "s" : ""}
+                </p>
+              </Link>
+            ))}
+          </div>
+          {vendors.length === 0 && (
+            <p className="text-zinc-500 dark:text-zinc-400">No vendors yet.</p>
+          )}
+        </section>
+      )}
     </div>
   );
 }

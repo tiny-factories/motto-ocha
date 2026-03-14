@@ -36,6 +36,12 @@ function parseDelimitedValues(raw: string): string[] {
     .filter(Boolean);
 }
 
+function parseInfusionSeconds(raw: string): number[] {
+  return parseDelimitedValues(raw)
+    .map((value) => Number.parseInt(value, 10))
+    .filter((value) => Number.isFinite(value) && value > 0);
+}
+
 type TeaFormProps = {
   tea?: {
     id: string;
@@ -60,6 +66,11 @@ type TeaFormProps = {
     categoryIds?: string[];
     alternativeNames?: string[];
     barcodes?: string[];
+    defaultLeafGrams?: number | null;
+    defaultWaterMl?: number | null;
+    defaultTemperatureC?: number | null;
+    defaultBrewNotes?: string | null;
+    defaultInfusionSeconds?: number[];
   };
   farms: Farm[];
   vendors: Vendor[];
@@ -124,6 +135,23 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
       (formData.get("alternativeNames") as string) || ""
     );
     const barcodes = parseDelimitedValues((formData.get("barcodes") as string) || "");
+    const defaultLeafGramsRaw = (formData.get("defaultLeafGrams") as string) || "";
+    const defaultWaterMlRaw = (formData.get("defaultWaterMl") as string) || "";
+    const defaultTemperatureCRaw = (formData.get("defaultTemperatureC") as string) || "";
+    const defaultBrewNotes = (formData.get("defaultBrewNotes") as string) || null;
+    const defaultInfusionSeconds = parseInfusionSeconds(
+      (formData.get("defaultInfusionSeconds") as string) || ""
+    );
+    const defaultLeafGrams =
+      defaultLeafGramsRaw.trim() === ""
+        ? null
+        : Number.parseFloat(defaultLeafGramsRaw);
+    const defaultWaterMl =
+      defaultWaterMlRaw.trim() === "" ? null : Number.parseInt(defaultWaterMlRaw, 10);
+    const defaultTemperatureC =
+      defaultTemperatureCRaw.trim() === ""
+        ? null
+        : Number.parseInt(defaultTemperatureCRaw, 10);
 
     const imageFile = formData.get("image") as File | null;
     const teaModelFile = formData.get("teaModel") as File | null;
@@ -167,6 +195,13 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
         categoryIds: categoryIds.filter(Boolean),
         alternativeNames,
         barcodes,
+        defaultLeafGrams: Number.isFinite(defaultLeafGrams) ? defaultLeafGrams : null,
+        defaultWaterMl: Number.isFinite(defaultWaterMl) ? defaultWaterMl : null,
+        defaultTemperatureC: Number.isFinite(defaultTemperatureC)
+          ? defaultTemperatureC
+          : null,
+        defaultBrewNotes: defaultBrewNotes?.trim() ? defaultBrewNotes.trim() : null,
+        defaultInfusionSeconds,
       };
 
       const url = tea ? `/api/admin/teas/${tea.id}` : "/api/admin/teas";
@@ -247,6 +282,69 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
           placeholder="One barcode per line (EAN/UPC/etc.)"
           className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
         />
+      </div>
+      <div className="rounded-md border border-zinc-200 p-4 dark:border-zinc-700">
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
+          Default brewing guide
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Leaf (grams)</label>
+            <input
+              name="defaultLeafGrams"
+              type="number"
+              step="0.1"
+              min="0"
+              defaultValue={tea?.defaultLeafGrams ?? ""}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Water (ml)</label>
+            <input
+              name="defaultWaterMl"
+              type="number"
+              min="0"
+              defaultValue={tea?.defaultWaterMl ?? ""}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Temperature (°C)</label>
+            <input
+              name="defaultTemperatureC"
+              type="number"
+              min="0"
+              max="100"
+              defaultValue={tea?.defaultTemperatureC ?? ""}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="mb-1 block text-sm font-medium">
+            Infusion steep times (seconds)
+          </label>
+          <input
+            name="defaultInfusionSeconds"
+            defaultValue={(tea?.defaultInfusionSeconds ?? []).join(", ")}
+            placeholder="e.g. 30, 45, 60, 90"
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          />
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Comma or newline separated. This enables multi-steep guidance.
+          </p>
+        </div>
+        <div className="mt-4">
+          <label className="mb-1 block text-sm font-medium">Brew notes</label>
+          <textarea
+            name="defaultBrewNotes"
+            rows={2}
+            defaultValue={tea?.defaultBrewNotes ?? ""}
+            placeholder="e.g. Rinse quickly. Keep lid open between infusions."
+            className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          />
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

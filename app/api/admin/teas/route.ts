@@ -36,6 +36,11 @@ export async function POST(req: Request) {
     categoryIds,
     alternativeNames,
     barcodes,
+    defaultLeafGrams,
+    defaultWaterMl,
+    defaultTemperatureC,
+    defaultBrewNotes,
+    defaultInfusionSeconds,
   } = body;
 
   if (!nameNative || !slug) {
@@ -75,6 +80,30 @@ export async function POST(req: Request) {
       );
     }
   }
+
+  const brewInfusions = Array.isArray(defaultInfusionSeconds)
+    ? defaultInfusionSeconds
+        .map((value: unknown) =>
+          typeof value === "number" ? value : Number.parseInt(String(value), 10)
+        )
+        .filter((value) => Number.isFinite(value) && value > 0)
+    : [];
+  const brewLeafGrams =
+    defaultLeafGrams != null && defaultLeafGrams !== ""
+      ? Number(defaultLeafGrams)
+      : null;
+  const brewWaterMl =
+    defaultWaterMl != null && defaultWaterMl !== "" ? Number(defaultWaterMl) : null;
+  const brewTemperatureC =
+    defaultTemperatureC != null && defaultTemperatureC !== ""
+      ? Number(defaultTemperatureC)
+      : null;
+  const hasBrewGuideData =
+    brewLeafGrams != null ||
+    brewWaterMl != null ||
+    brewTemperatureC != null ||
+    (typeof defaultBrewNotes === "string" && defaultBrewNotes.trim() !== "") ||
+    brewInfusions.length > 0;
 
   const tea = await prisma.tea.create({
     data: {
@@ -146,6 +175,32 @@ export async function POST(req: Request) {
         code,
       })),
     });
+  }
+
+  if (hasBrewGuideData) {
+    const guide = await prisma.teaBrewGuide.create({
+      data: {
+        teaId: tea.id,
+        leafGrams: Number.isFinite(brewLeafGrams) ? brewLeafGrams : null,
+        waterMl: Number.isFinite(brewWaterMl) ? Math.round(brewWaterMl) : null,
+        temperatureC: Number.isFinite(brewTemperatureC)
+          ? Math.round(brewTemperatureC)
+          : null,
+        notes:
+          typeof defaultBrewNotes === "string" && defaultBrewNotes.trim()
+            ? defaultBrewNotes.trim()
+            : null,
+      },
+    });
+    if (brewInfusions.length > 0) {
+      await prisma.teaBrewGuideStep.createMany({
+        data: brewInfusions.map((steepSeconds: number, index: number) => ({
+          guideId: guide.id,
+          infusionNumber: index + 1,
+          steepSeconds: Math.round(steepSeconds),
+        })),
+      });
+    }
   }
 
   return NextResponse.json(tea);

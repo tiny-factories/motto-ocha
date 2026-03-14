@@ -62,6 +62,17 @@ export default function AdminHomePage() {
             Taste profile tags (e.g. mellow, nutty)
           </p>
         </Link>
+        <Link
+          href="/admin/mocktails"
+          className="rounded-lg border border-zinc-200 bg-white p-6 transition hover:shadow dark:border-zinc-800 dark:bg-zinc-900"
+        >
+          <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
+            Mocktails
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Create tea-based mocktail recipes
+          </p>
+        </Link>
       </div>
     </div>
   );

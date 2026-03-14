@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 type TeaReviewFormProps = {
   teaId: string;
   vendors: { id: string; name: string }[];
+  allowVendorSelection?: boolean;
 };
 
 type ApiReview = {
@@ -16,7 +17,11 @@ type ApiReview = {
   vendorId: string | null;
 };
 
-export function TeaReviewForm({ teaId, vendors }: TeaReviewFormProps) {
+export function TeaReviewForm({
+  teaId,
+  vendors,
+  allowVendorSelection = false,
+}: TeaReviewFormProps) {
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,7 +79,7 @@ export function TeaReviewForm({ teaId, vendors }: TeaReviewFormProps) {
         rating: rating ? Number(rating) : null,
         review: review || null,
         locationName: locationName || null,
-        vendorId: vendorId || null,
+        vendorId: allowVendorSelection ? vendorId || null : null,
       };
       const res = await fetch(`/api/teas/${teaId}/review`, {
         method: "PUT",
@@ -130,23 +135,25 @@ export function TeaReviewForm({ teaId, vendors }: TeaReviewFormProps) {
             <option value="5">5 - Favorite</option>
           </select>
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Vendor / brand
-          </label>
-          <select
-            value={vendorId}
-            onChange={(e) => setVendorId(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-          >
-            <option value="">Not specified</option>
-            {vendors.map((vendor) => (
-              <option key={vendor.id} value={vendor.id}>
-                {vendor.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {allowVendorSelection && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Vendor / brand
+            </label>
+            <select
+              value={vendorId}
+              onChange={(e) => setVendorId(e.target.value)}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            >
+              <option value="">Not specified</option>
+              {vendors.map((vendor) => (
+                <option key={vendor.id} value={vendor.id}>
+                  {vendor.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div>
