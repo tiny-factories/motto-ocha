@@ -24,6 +24,7 @@ model User {
   sessions      Session[]
   userTeas      UserTea[]
   lists         List[]
+  teaReviews    TeaReview[]
 }
 
 model Account {
@@ -85,6 +86,7 @@ model Vendor {
   description String?     @db.Text
   scale       String?     // "commercial" | "independent"
   teas        VendorTea[]
+  teaReviews  TeaReview[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -155,6 +157,9 @@ model Tea {
   userTeas          UserTea[]
   vendorTeas        VendorTea[]
   listTeas          ListTea[]
+  aliases           TeaAlias[]
+  barcodes          TeaBarcode[]
+  teaReviews        TeaReview[]
   teaTasteTags      TeaTasteTag[]
   categoryAssignments TeaCategoryAssignment[]
   createdAt         DateTime    @default(now())
@@ -207,4 +212,48 @@ model VendorTea {
   tea      Tea    @relation(fields: [teaId], references: [id], onDelete: Cascade)
 
   @@id([vendorId, teaId])
+}
+
+model TeaAlias {
+  id        String   @id @default(cuid())
+  teaId     String
+  value     String
+  language  String?
+  tea       Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teaId, value])
+  @@index([value])
+}
+
+model TeaBarcode {
+  id        String   @id @default(cuid())
+  teaId     String
+  code      String   @unique
+  format    String?
+  tea       Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teaId])
+}
+
+model TeaReview {
+  id           String   @id @default(cuid())
+  userId       String
+  teaId        String
+  vendorId     String?
+  rating       Int?
+  review       String?  @db.Text
+  locationName String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tea          Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  vendor       Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, teaId])
+  @@index([teaId])
+  @@index([vendorId])
 }

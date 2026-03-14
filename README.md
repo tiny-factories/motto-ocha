@@ -2,6 +2,10 @@
 
 Tea index: vendors, farms, and teas. Native-language names with English labels. User accounts can track “tried” and “want to try”; admin can add and edit teas (with image and 3D GLB uploads to MinIO).
 
+New tracking features:
+- **Tea identification** (`/identify`): scan barcodes live, detect barcode from uploaded/taken photos, or search by label text (including native-language aliases) and match to catalog teas.
+- **Personal tea notes** (on each tea page): save your rating, review notes, vendor/brand, and where you drank or bought that tea (e.g. specific cafe/shop).
+
 ## Teas, farms, and vendors
 
 | Concept   | Meaning                | Link to tea                    |
@@ -66,7 +70,7 @@ npm run start
 ## Admin
 
 - Sign up at /signup, then sign in at /login. Add your email to `ADMIN_EMAILS` (or set `role = 'admin'` in the `User` table) to access `/admin`.
-- In admin you can create/edit **Teas** (with image and 3D tea/packaging GLB uploads, taste tags, tea categories, year, single-origin, scale, location), **Farms**, **Vendors**, **Tea categories** (e.g. Green, Matcha), and **Taste tags** (e.g. mellow, nutty). Location fields support a searchable autocomplete (tea-growing regions). Run `npx prisma db seed` to seed default taste tags and tea categories.
+- In admin you can create/edit **Teas** (with image and 3D tea/packaging GLB uploads, taste tags, tea categories, year, single-origin, scale, location, **alternative native-language names**, and **barcodes**), **Farms**, **Vendors**, **Tea categories** (e.g. Green, Matcha), and **Taste tags** (e.g. mellow, nutty). Location fields support a searchable autocomplete (tea-growing regions). Run `npx prisma db seed` to seed default taste tags and tea categories.
 
 ## 3D models
 

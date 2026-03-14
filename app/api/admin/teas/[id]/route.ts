@@ -38,6 +38,8 @@ export async function PATCH(
     tasteTagIds,
     tasteTagRanks,
     categoryIds,
+    alternativeNames,
+    barcodes,
   } = body;
 
   if (!nameNative || !slug) {
@@ -60,6 +62,29 @@ export async function PATCH(
       { error: "Another tea already has this slug" },
       { status: 400 }
     );
+  }
+
+  const aliases = Array.isArray(alternativeNames)
+    ? [...new Set(alternativeNames.map((value: string) => value.trim()).filter(Boolean))]
+    : [];
+  const barcodeCodes = Array.isArray(barcodes)
+    ? [...new Set(barcodes.map((value: string) => value.replace(/[^\dA-Za-z]/g, "").trim()).filter(Boolean))]
+    : [];
+  if (barcodeCodes.length > 0) {
+    const existingBarcodes = await prisma.teaBarcode.findMany({
+      where: { code: { in: barcodeCodes }, teaId: { not: id } },
+      include: { tea: { select: { nameNative: true } } },
+    });
+    if (existingBarcodes.length > 0) {
+      return NextResponse.json(
+        {
+          error: `These barcodes are already assigned: ${existingBarcodes
+            .map((row) => `${row.code} (${row.tea.nameNative})`)
+            .join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
   }
 
   const tea = await prisma.tea.update({
@@ -112,6 +137,27 @@ export async function PATCH(
       data: catIds.map((teaCategoryId: string) => ({
         teaId: id,
         teaCategoryId,
+      })),
+    });
+  }
+
+  await prisma.teaAlias.deleteMany({ where: { teaId: id } });
+  if (aliases.length > 0) {
+    await prisma.teaAlias.createMany({
+      data: aliases.map((value: string) => ({
+        teaId: id,
+        value,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  await prisma.teaBarcode.deleteMany({ where: { teaId: id } });
+  if (barcodeCodes.length > 0) {
+    await prisma.teaBarcode.createMany({
+      data: barcodeCodes.map((code: string) => ({
+        teaId: id,
+        code,
       })),
     });
   }

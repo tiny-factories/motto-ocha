@@ -29,6 +29,13 @@ type Vendor = { id: string; name: string };
 type TasteTag = { id: string; slug: string; label: string };
 type TeaCategory = { id: string; slug: string; label: string; parentId: string | null };
 
+function parseDelimitedValues(raw: string): string[] {
+  return raw
+    .split(/[\n,]/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 type TeaFormProps = {
   tea?: {
     id: string;
@@ -51,6 +58,8 @@ type TeaFormProps = {
     processingNotes: string | null;
     tasteTagIds?: string[];
     categoryIds?: string[];
+    alternativeNames?: string[];
+    barcodes?: string[];
   };
   farms: Farm[];
   vendors: Vendor[];
@@ -111,6 +120,10 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
     const processingNotes = (formData.get("processingNotes") as string) || null;
     const tasteTagIds = formData.getAll("tasteTagIds") as string[];
     const categoryIds = formData.getAll("categoryIds") as string[];
+    const alternativeNames = parseDelimitedValues(
+      (formData.get("alternativeNames") as string) || ""
+    );
+    const barcodes = parseDelimitedValues((formData.get("barcodes") as string) || "");
 
     const imageFile = formData.get("image") as File | null;
     const teaModelFile = formData.get("teaModel") as File | null;
@@ -152,6 +165,8 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
         tasteTagIds: tasteTagIds.filter(Boolean),
         tasteTagRanks: tasteTagIds.filter(Boolean).map((_, i) => i + 1),
         categoryIds: categoryIds.filter(Boolean),
+        alternativeNames,
+        barcodes,
       };
 
       const url = tea ? `/api/admin/teas/${tea.id}` : "/api/admin/teas";
@@ -208,6 +223,28 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
           name="description"
           defaultValue={tea?.description ?? ""}
           rows={3}
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">
+          Alternative names (other languages)
+        </label>
+        <textarea
+          name="alternativeNames"
+          defaultValue={(tea?.alternativeNames ?? []).join("\n")}
+          rows={3}
+          placeholder="One name per line (or comma-separated)"
+          className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+        />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium">Barcodes</label>
+        <textarea
+          name="barcodes"
+          defaultValue={(tea?.barcodes ?? []).join("\n")}
+          rows={2}
+          placeholder="One barcode per line (EAN/UPC/etc.)"
           className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
         />
       </div>

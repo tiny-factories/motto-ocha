@@ -34,6 +34,8 @@ export async function POST(req: Request) {
     tasteTagIds,
     tasteTagRanks,
     categoryIds,
+    alternativeNames,
+    barcodes,
   } = body;
 
   if (!nameNative || !slug) {
@@ -49,6 +51,29 @@ export async function POST(req: Request) {
       { error: "A tea with this slug already exists" },
       { status: 400 }
     );
+  }
+
+  const aliases = Array.isArray(alternativeNames)
+    ? [...new Set(alternativeNames.map((value: string) => value.trim()).filter(Boolean))]
+    : [];
+  const barcodeCodes = Array.isArray(barcodes)
+    ? [...new Set(barcodes.map((value: string) => value.replace(/[^\dA-Za-z]/g, "").trim()).filter(Boolean))]
+    : [];
+  if (barcodeCodes.length > 0) {
+    const existingBarcodes = await prisma.teaBarcode.findMany({
+      where: { code: { in: barcodeCodes } },
+      include: { tea: { select: { nameNative: true } } },
+    });
+    if (existingBarcodes.length > 0) {
+      return NextResponse.json(
+        {
+          error: `These barcodes are already assigned: ${existingBarcodes
+            .map((row) => `${row.code} (${row.tea.nameNative})`)
+            .join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
   }
 
   const tea = await prisma.tea.create({
@@ -100,6 +125,25 @@ export async function POST(req: Request) {
       data: catIds.map((teaCategoryId: string) => ({
         teaId: tea.id,
         teaCategoryId,
+      })),
+    });
+  }
+
+  if (aliases.length > 0) {
+    await prisma.teaAlias.createMany({
+      data: aliases.map((value: string) => ({
+        teaId: tea.id,
+        value,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  if (barcodeCodes.length > 0) {
+    await prisma.teaBarcode.createMany({
+      data: barcodeCodes.map((code: string) => ({
+        teaId: tea.id,
+        code,
       })),
     });
   }

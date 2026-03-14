@@ -4,6 +4,7 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { Viewer3D } from "@/components/Viewer3D";
 import { AddToList } from "@/components/AddToList";
+import { TeaReviewForm } from "@/components/TeaReviewForm";
 
 export default async function TeaDetailPage({
   params,
@@ -135,6 +136,18 @@ export default async function TeaDetailPage({
             </p>
           )}
           <AddToList teaId={tea.id} />
+          <div className="mt-8 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/30">
+            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Your review & where you found it
+            </h2>
+            <TeaReviewForm
+              teaId={tea.id}
+              vendors={tea.vendorTeas.map((vt) => ({
+                id: vt.vendor.id,
+                name: vt.vendor.name,
+              }))}
+            />
+          </div>
         </div>
       </div>
 
