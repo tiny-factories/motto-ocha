@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { filterLocationOptions, type LocationOption } from "@/lib/location-data";
 
 type LocationAutocompleteProps = {
@@ -21,16 +21,11 @@ export function LocationAutocomplete({
 }: LocationAutocompleteProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const [options, setOptions] = useState<LocationOption[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const updateOptions = useCallback(() => {
-    setOptions(filterLocationOptions(query));
-  }, [query]);
-
-  useEffect(() => {
-    updateOptions();
-  }, [updateOptions]);
+  const options = useMemo<LocationOption[]>(
+    () => filterLocationOptions(query),
+    [query]
+  );
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -78,6 +73,7 @@ export function LocationAutocomplete({
             <li
               key={`${opt.country}-${opt.prefecture}-${opt.region ?? ""}-${i}`}
               role="option"
+              aria-selected={false}
               className="cursor-pointer px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700"
               onMouseDown={(e) => {
                 e.preventDefault();
