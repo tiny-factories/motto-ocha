@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  password      String?   // hashed; for email/password sign-in
+  role          UserRole  @default(user)
+  accounts      Account[]
+  sessions      Session[]
+  userTeas      UserTea[]
+  lists         List[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Farm {
+  id           String   @id @default(cuid())
+  nameNative   String
+  nameEnglish  String?
+  description  String?  @db.Text
+  imageUrl     String?
+  locationText String?
+  region       String?
+  country      String?
+  prefecture   String?
+  scale        String?  // "commercial" | "independent"
+  slug         String   @unique
+  teas         Tea[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Vendor {
+  id          String      @id @default(cuid())
+  name        String
+  logoUrl     String?
+  url         String?
+  description String?     @db.Text
+  scale       String?     // "commercial" | "independent"
+  teas        VendorTea[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model TasteTag {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  label       String
+  teaTasteTags TeaTasteTag[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model TeaTasteTag {
+  teaId      String
+  tasteTagId String
+  rank       Int?           // optional ordering per tea
+  tea        Tea            @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  tasteTag   TasteTag       @relation(fields: [tasteTagId], references: [id], onDelete: Cascade)
+
+  @@id([teaId, tasteTagId])
+  @@index([teaId])
+  @@index([tasteTagId])
+}
+
+model TeaCategory {
+  id          String               @id @default(cuid())
+  slug        String               @unique
+  label       String
+  parentId    String?
+  parent      TeaCategory?         @relation("TeaCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    TeaCategory[]        @relation("TeaCategoryHierarchy")
+  assignments TeaCategoryAssignment[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model TeaCategoryAssignment {
+  teaId         String
+  teaCategoryId String
+  tea           Tea         @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  teaCategory   TeaCategory @relation(fields: [teaCategoryId], references: [id], onDelete: Cascade)
+
+  @@id([teaId, teaCategoryId])
+  @@index([teaId])
+  @@index([teaCategoryId])
+}
+
+model Tea {
+  id                String      @id @default(cuid())
+  nameNative        String
+  nameEnglish       String?
+  slug              String      @unique
+  description       String?     @db.Text
+  imageUrl          String?
+  teaModelUrl       String? // GLB 3D scan of tea
+  packagingModelUrl String? // GLB 3D scan of packaging
+  region            String?
+  country           String?
+  prefecture        String?
+  singleOrigin      Boolean?
+  scale             String?     // "commercial" | "independent"
+  year              Int?        // harvest/vintage year
+  caffeineLevel     String?     // e.g. "low" | "medium" | "high" | "decaf"
+  processingNotes   String?     @db.Text
+  farmId            String?
+  farm              Farm?       @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  userTeas          UserTea[]
+  vendorTeas        VendorTea[]
+  listTeas          ListTea[]
+  teaTasteTags      TeaTasteTag[]
+  categoryAssignments TeaCategoryAssignment[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model UserTea {
+  id        String   @id @default(cuid())
+  userId    String
+  teaId     String
+  status    String // "tried" | "want_to_try"
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tea       Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, teaId])
+  @@index([userId])
+  @@index([teaId])
+}
+
+model List {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  slug      String    // e.g. "favorites", "want-to-try", "tried" for defaults; unique per user
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listTeas  ListTea[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, slug])
+  @@index([userId])
+}
+
+model ListTea {
+  listId   String
+  teaId    String
+  list     List @relation(fields: [listId], references: [id], onDelete: Cascade)
+  tea      Tea  @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([listId, teaId])
+  @@index([teaId])
+}
+
+model VendorTea {
+  vendorId String
+  teaId    String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  tea      Tea    @relation(fields: [teaId], references: [id], onDelete: Cascade)
+
+  @@id([vendorId, teaId])
+}
