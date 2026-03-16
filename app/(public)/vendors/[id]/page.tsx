@@ -10,6 +10,7 @@ export default async function VendorDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session) {
     redirect("/login");
@@ -18,8 +19,6 @@ export default async function VendorDetailPage({
   if (!canAccessExpertData(role)) {
     redirect("/");
   }
-
-  const { id } = await params;
   const vendor = await prisma.vendor.findUnique({
     where: { id },
     include: {

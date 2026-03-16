@@ -1,8 +1,16 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions, isAdminByRole } from "@/lib/auth";
-import { uploadBuffer } from "@/lib/minio";
+import { uploadToStorage, isStorageConfigured } from "@/lib/storage";
 
+const UPLOAD_FOLDERS = ["tea", "farm", "vendor", "general"] as const;
+
+/**
+ * POST /api/admin/upload
+ * Multipart form: "file" (required), optional "folder" (tea | farm | vendor | general).
+ * Uploads to bucket prefix: uploads/{folder}/ so admin uploads are isolated from
+ * scraped/ and captured/ images.
+ */
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -13,36 +21,51 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  const prefix = (formData.get("prefix") as string) || "uploads";
-
-  if (!file || !(file instanceof Blob)) {
+  if (!isStorageConfigured()) {
     return NextResponse.json(
-      { error: "No file or invalid file" },
+      { error: "Uploads are not configured. Set MINIO_* environment variables." },
+      { status: 503 }
+    );
+  }
+
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid form data" },
       { status: 400 }
     );
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = file.name.split(".").pop() ?? "bin";
-  const key = `${prefix}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const file = formData.get("file");
+  if (!file || !(file instanceof File)) {
+    return NextResponse.json(
+      { error: "Missing or invalid file" },
+      { status: 400 }
+    );
+  }
 
-  const contentType =
-    file.type ||
-    (ext === "glb"
-      ? "model/gltf-binary"
-      : ext === "gltf"
-        ? "model/gltf+json"
-        : "application/octet-stream");
+  const folderRaw = (formData.get("folder") as string)?.toLowerCase()?.trim();
+  const folder = UPLOAD_FOLDERS.includes(folderRaw as (typeof UPLOAD_FOLDERS)[number])
+    ? folderRaw
+    : "general";
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const contentType = file.type || "application/octet-stream";
 
   try {
-    const url = await uploadBuffer(key, buffer, contentType);
-    return NextResponse.json({ url, key });
-  } catch (e) {
-    console.error("Upload error:", e);
+    const url = await uploadToStorage(
+      "UPLOADS",
+      folder,
+      buffer,
+      contentType
+    );
+    return NextResponse.json({ url });
+  } catch (err) {
+    console.error("Admin upload failed:", err);
     return NextResponse.json(
-      { error: "Upload failed" },
+      { error: "Upload failed. Check MinIO is running and bucket exists." },
       { status: 500 }
     );
   }

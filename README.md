@@ -43,6 +43,8 @@ docker compose up --build
 
 The `minio-init` service creates the `motto-ocha-assets` bucket. The app runs Prisma migrations on startup.
 
+**Bucket layout (MinIO):** Images are isolated by source. `uploads/` = admin uploads (tea, farm, vendor images/GLBs). `captured/` = photos taken in the tea log. `scraped/` = re-hosted scraped product images (when scripts upload into our bucket instead of using external URLs).
+
 ## Run locally (no Docker)
 
 1. **Start PostgreSQL** (and optionally MinIO) so the app can connect:

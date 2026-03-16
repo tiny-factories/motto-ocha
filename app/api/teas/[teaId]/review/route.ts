@@ -61,7 +61,7 @@ export async function PUT(
   const body = await req.json().catch(() => ({}));
   const ratingInput = Number(body.rating);
   const rating =
-    Number.isFinite(ratingInput) && ratingInput >= 1 && ratingInput <= 5
+    Number.isFinite(ratingInput) && ratingInput >= 0 && ratingInput <= 3
       ? Math.round(ratingInput)
       : null;
   const review =
@@ -77,6 +77,7 @@ export async function PUT(
       ? body.vendorId.trim()
       : null;
   const vendorId = canUseVendorInfo ? requestedVendorId : null;
+  const isPublic = body.isPublic === true;
 
   if (vendorId) {
     const vendor = await prisma.vendor.findUnique({
@@ -102,12 +103,14 @@ export async function PUT(
       review,
       locationName,
       vendorId,
+      isPublic,
     },
     update: {
       rating,
       review,
       locationName,
       vendorId,
+      isPublic,
     },
     include: { vendor: { select: { id: true, name: true } } },
   });

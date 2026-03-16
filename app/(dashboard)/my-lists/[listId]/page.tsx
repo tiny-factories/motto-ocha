@@ -13,6 +13,7 @@ export default async function ListDetailPage({
 }: {
   params: Promise<{ listId: string }>;
 }) {
+  const { listId } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) return null;
 
@@ -21,8 +22,6 @@ export default async function ListDetailPage({
     select: { id: true },
   });
   if (!user) return null;
-
-  const { listId } = await params;
   const list = await prisma.list.findUnique({
     where: { id: listId },
     include: {

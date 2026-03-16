@@ -41,12 +41,23 @@ export default function SignupPage() {
 
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-sm flex-col justify-center px-4">
-      <h1 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-        Sign up
-      </h1>
+      <div className="mb-8 text-center">
+        <span className="text-3xl text-accent" aria-hidden>
+          茶
+        </span>
+        <h1 className="mt-3 text-2xl font-bold text-foreground">
+          Start your tea journal
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Track every cup. Discover new favorites.
+        </p>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium">
+          <label
+            htmlFor="email"
+            className="mb-1 block text-sm font-medium text-foreground"
+          >
             Email
           </label>
           <input
@@ -57,12 +68,16 @@ export default function SignupPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-card-border bg-card px-3 py-2.5 text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </div>
         <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium">
-            Name (optional)
+          <label
+            htmlFor="name"
+            className="mb-1 block text-sm font-medium text-foreground"
+          >
+            Name{" "}
+            <span className="font-normal text-muted">(optional)</span>
           </label>
           <input
             id="name"
@@ -71,12 +86,16 @@ export default function SignupPage() {
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-card-border bg-card px-3 py-2.5 text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium">
-            Password (min 8 characters)
+          <label
+            htmlFor="password"
+            className="mb-1 block text-sm font-medium text-foreground"
+          >
+            Password{" "}
+            <span className="font-normal text-muted">(min 8 characters)</span>
           </label>
           <input
             id="password"
@@ -87,7 +106,7 @@ export default function SignupPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={8}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-card-border bg-card px-3 py-2.5 text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </div>
         {error && (
@@ -96,14 +115,17 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="w-full rounded-lg bg-accent px-4 py-2.5 font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
-          {loading ? "Creating account…" : "Sign up"}
+          {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
-      <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link href="/login" className="font-medium text-zinc-900 hover:underline dark:text-zinc-100">
+        <Link
+          href="/login"
+          className="font-medium text-accent hover:underline"
+        >
           Sign in
         </Link>
       </p>

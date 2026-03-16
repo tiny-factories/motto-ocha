@@ -1,32 +1,22 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
 import { getServerSession } from "next-auth";
-import { authOptions, canAccessExpertData } from "@/lib/auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Viewer3D } from "@/components/Viewer3D";
 import { AddToList } from "@/components/AddToList";
 import { TeaReviewForm } from "@/components/TeaReviewForm";
-import { TeaBrewProfileForm } from "@/components/TeaBrewProfileForm";
 
 export default async function TeaDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const canViewVendorInfo = canAccessExpertData(role);
-
   const { slug } = await params;
+  const session = await getServerSession(authOptions);
+
   const tea = await prisma.tea.findUnique({
     where: { slug },
     include: {
-      farm: true,
       vendorTeas: { include: { vendor: true } },
-      brewGuide: {
-        include: { infusions: { orderBy: { infusionNumber: "asc" } } },
-      },
       teaTasteTags: { orderBy: { rank: "asc" }, include: { tasteTag: true } },
       categoryAssignments: { include: { teaCategory: true } },
     },
@@ -34,179 +24,145 @@ export default async function TeaDetailPage({
 
   if (!tea) notFound();
 
+  const vendors = tea.vendorTeas.map((vt) => ({
+    id: vt.vendor.id,
+    name: vt.vendor.name,
+  }));
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <div className="mb-8 grid gap-8 md:grid-cols-2">
-        <div className="aspect-[4/3] relative overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-          {tea.imageUrl ? (
-            <Image
-              src={tea.imageUrl}
-              alt={tea.nameEnglish ?? tea.nameNative}
-              fill
-              className="object-cover"
-              priority
-              unoptimized
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-zinc-400 dark:text-zinc-500">
-              No image
-            </div>
-          )}
+    <div className="mx-auto max-w-3xl px-4 py-12">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="mb-4 flex items-start gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-accent-light">
+            <span className="text-2xl font-semibold text-accent" aria-hidden>
+              {tea.nameNative.charAt(0)}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground md:text-3xl">
+              {tea.nameNative}
+            </h1>
+            {tea.nameEnglish && (
+              <p className="mt-0.5 text-lg text-muted-foreground">
+                {tea.nameEnglish}
+              </p>
+            )}
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-            {tea.nameNative}
-          </h1>
-          {tea.nameEnglish && (
-            <p className="mt-1 text-lg text-zinc-500 dark:text-zinc-400">
-              {tea.nameEnglish}
+
+        {tea.description && (
+          <p className="text-muted-foreground">{tea.description}</p>
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2">
+        {tea.categoryAssignments.length > 0 && (
+          <div className="rounded-xl border border-card-border bg-card p-4">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">
+              Type
             </p>
-          )}
-          {tea.description && (
-            <p className="mt-4 text-zinc-600 dark:text-zinc-300">
-              {tea.description}
-            </p>
-          )}
-          {tea.farm && (
-            <p className="mt-4">
-              <span className="text-zinc-500 dark:text-zinc-400">Farm: </span>
-              <Link
-                href={`/farms/${tea.farm.slug}`}
-                className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
-              >
-                {tea.farm.nameNative}
-                {tea.farm.nameEnglish && ` (${tea.farm.nameEnglish})`}
-              </Link>
-            </p>
-          )}
-          {canViewVendorInfo && tea.vendorTeas.length > 0 && (
-            <p className="mt-1">
-              <span className="text-zinc-500 dark:text-zinc-400">
-                Imported by:{" "}
-              </span>
-              {tea.vendorTeas.map((vt, i) => (
-                <span key={vt.vendor.id}>
-                  {i > 0 && ", "}
-                  <Link
-                    href={`/vendors/${vt.vendor.id}`}
-                    className="font-medium text-zinc-900 hover:underline dark:text-zinc-100"
-                  >
-                    {vt.vendor.name}
-                  </Link>
+            <div className="flex flex-wrap gap-1.5">
+              {tea.categoryAssignments.map((a) => (
+                <span
+                  key={a.teaCategory.id}
+                  className="rounded-full bg-accent-light px-2.5 py-0.5 text-sm font-medium text-accent"
+                >
+                  {a.teaCategory.label}
                 </span>
               ))}
+            </div>
+          </div>
+        )}
+
+        {tea.vendorTeas.length > 0 && (
+          <div className="rounded-xl border border-card-border bg-card p-4">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">
+              Vendor
             </p>
-          )}
-          {tea.categoryAssignments.length > 0 && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Type:{" "}
-              {tea.categoryAssignments.map((a) => a.teaCategory.label).join(", ")}
+            <p className="text-sm text-foreground">
+              {tea.vendorTeas.map((vt) => vt.vendor.name).join(", ")}
             </p>
-          )}
-          {tea.teaTasteTags.length > 0 && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Taste:{" "}
-              {tea.teaTasteTags.map((tt) => tt.tasteTag.label).join(", ")}
+          </div>
+        )}
+
+        {(tea.prefecture || tea.region || tea.country) && (
+          <div className="rounded-xl border border-card-border bg-card p-4">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">
+              Origin
             </p>
-          )}
-          {tea.year && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {tea.year} harvest
-            </p>
-          )}
-          {tea.caffeineLevel && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Caffeine: {tea.caffeineLevel.charAt(0).toUpperCase() + tea.caffeineLevel.slice(1)}
-            </p>
-          )}
-          {tea.processingNotes && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Processing: {tea.processingNotes}
-            </p>
-          )}
-          {tea.singleOrigin !== null && tea.singleOrigin !== undefined && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {tea.singleOrigin ? "Single origin" : "Blend"}
-            </p>
-          )}
-          {tea.scale && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {tea.scale === "independent" ? "Independent" : "Commercial"} producer
-            </p>
-          )}
-          {(tea.farm?.prefecture ?? tea.prefecture ?? tea.farm?.region ?? tea.region ?? tea.farm?.country ?? tea.country) && (
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {[
-                tea.farm?.prefecture ?? tea.prefecture,
-                tea.farm?.region ?? tea.region,
-                tea.farm?.country ?? tea.country,
-              ]
+            <p className="text-sm text-foreground">
+              {[tea.prefecture, tea.region, tea.country]
                 .filter(Boolean)
                 .join(", ")}
             </p>
-          )}
-          <AddToList teaId={tea.id} />
-          <div className="mt-8 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/30">
-            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Your review & where you found it
-            </h2>
-            <TeaReviewForm
-              teaId={tea.id}
-              vendors={
-                canViewVendorInfo
-                  ? tea.vendorTeas.map((vt) => ({
-                      id: vt.vendor.id,
-                      name: vt.vendor.name,
-                    }))
-                  : []
-              }
-              allowVendorSelection={canViewVendorInfo}
-            />
           </div>
-          <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900/30">
-            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              Brewing guide
-            </h2>
-            <TeaBrewProfileForm
-              teaId={tea.id}
-              recommended={{
-                leafGrams: tea.brewGuide?.leafGrams ?? null,
-                waterMl: tea.brewGuide?.waterMl ?? null,
-                temperatureC: tea.brewGuide?.temperatureC ?? null,
-                notes: tea.brewGuide?.notes ?? null,
-                infusions: (tea.brewGuide?.infusions ?? []).map((step) => ({
-                  infusionNumber: step.infusionNumber,
-                  steepSeconds: step.steepSeconds,
-                  note: step.note ?? null,
-                })),
-              }}
-            />
+        )}
+
+        {tea.caffeineLevel && (
+          <div className="rounded-xl border border-card-border bg-card p-4">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wider text-muted">
+              Caffeine
+            </p>
+            <p className="text-sm capitalize text-foreground">
+              {tea.caffeineLevel}
+            </p>
           </div>
-        </div>
+        )}
       </div>
 
-      <section className="mt-12 border-t border-zinc-200 pt-12 dark:border-zinc-800">
-        <h2 className="mb-6 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          3D views
-        </h2>
-        <div className="grid gap-8 md:grid-cols-2">
-          <div>
-            <h3 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Tea
-            </h3>
-            <Viewer3D src={tea.teaModelUrl} alt={`${tea.nameNative} – tea`} />
-          </div>
-          <div>
-            <h3 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              Packaging
-            </h3>
-            <Viewer3D
-              src={tea.packagingModelUrl}
-              alt={`${tea.nameNative} – packaging`}
-            />
+      {/* Taste tags */}
+      {tea.teaTasteTags.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted">
+            Tasting notes
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {tea.teaTasteTags.map((tt) => (
+              <span
+                key={tt.tasteTag.id}
+                className="rounded-lg bg-warm-highlight px-3 py-1.5 text-sm text-foreground"
+              >
+                {tt.tasteTag.label}
+              </span>
+            ))}
           </div>
         </div>
-      </section>
+      )}
+
+      {/* Add to list */}
+      <div className="mb-8">
+        <AddToList teaId={tea.id} />
+      </div>
+
+      {/* Review */}
+      <div className="rounded-xl border border-card-border bg-card p-6">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
+          Your notes
+        </h2>
+        <TeaReviewForm
+          teaId={tea.id}
+          vendors={vendors}
+          allowVendorSelection={vendors.length > 1}
+        />
+      </div>
+
+      {/* Additional info */}
+      {(tea.year || tea.processingNotes || tea.singleOrigin !== null) && (
+        <div className="mt-6 rounded-xl border border-card-border bg-card p-6">
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-muted">
+            Additional details
+          </h2>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            {tea.year && <p>{tea.year} harvest</p>}
+            {tea.singleOrigin !== null && (
+              <p>{tea.singleOrigin ? "Single origin" : "Blend"}</p>
+            )}
+            {tea.processingNotes && <p>{tea.processingNotes}</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

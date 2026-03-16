@@ -17,12 +17,19 @@ export default async function TeasPage({
       ...(scale ? { scale } : {}),
       ...(year ? { year: parseInt(year, 10) } : {}),
     },
-    orderBy: { nameNative: "asc" },
+    orderBy: { createdAt: "desc" },
     include: {
       farm: { select: { nameNative: true, slug: true } },
-      vendorTeas: { include: { vendor: { select: { id: true, name: true } } } },
-      teaTasteTags: { orderBy: { rank: "asc" }, include: { tasteTag: { select: { label: true } } } },
-      categoryAssignments: { include: { teaCategory: { select: { id: true, label: true } } } },
+      vendorTeas: {
+        include: { vendor: { select: { id: true, name: true } } },
+      },
+      teaTasteTags: {
+        orderBy: { rank: "asc" },
+        include: { tasteTag: { select: { label: true } } },
+      },
+      categoryAssignments: {
+        include: { teaCategory: { select: { id: true, label: true } } },
+      },
     },
   });
 
@@ -32,10 +39,16 @@ export default async function TeasPage({
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <h1 className="mb-6 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-        Teas
-      </h1>
+    <div className="mx-auto max-w-5xl px-4 py-12">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">
+          Tea database
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          {teas.length} tea{teas.length !== 1 ? "s" : ""} cataloged by the
+          community.
+        </p>
+      </div>
       <Suspense fallback={null}>
         <TeasListFilters
           teaCategories={teaCategories}
@@ -44,13 +57,17 @@ export default async function TeasPage({
           currentYear={year}
         />
       </Suspense>
-      <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {teas.map((tea) => (
           <TeaCard key={tea.id} tea={tea} />
         ))}
       </div>
       {teas.length === 0 && (
-        <p className="mt-6 text-zinc-500 dark:text-zinc-400">No teas match the filters.</p>
+        <div className="mt-12 rounded-xl border border-dashed border-card-border p-12 text-center">
+          <p className="text-muted-foreground">
+            No teas match the filters. Try broadening your search.
+          </p>
+        </div>
       )}
     </div>
   );

@@ -29,7 +29,6 @@ type FarmFormProps = {
 export function FarmForm({ farm }: FarmFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState(farm?.imageUrl ?? "");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -47,17 +46,6 @@ export function FarmForm({ farm }: FarmFormProps) {
     const country = (formData.get("country") as string) || null;
     const prefecture = (formData.get("prefecture") as string) || null;
     const scale = (formData.get("scale") as string) || null;
-    const imageFile = formData.get("image") as File | null;
-    let finalImageUrl = imageUrl;
-    if (imageFile?.size) {
-      const fd = new FormData();
-      fd.set("file", imageFile);
-      fd.set("prefix", "farms");
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      finalImageUrl = data.url;
-    }
     try {
       const body = {
         nameNative,
@@ -69,7 +57,7 @@ export function FarmForm({ farm }: FarmFormProps) {
         country,
         prefecture,
         scale,
-        imageUrl: finalImageUrl || null,
+        imageUrl: null,
       };
       const url = farm ? `/api/admin/farms/${farm.id}` : "/api/admin/farms";
       const res = await fetch(url, {
@@ -177,16 +165,6 @@ export function FarmForm({ farm }: FarmFormProps) {
           defaultValue={farm?.description ?? ""}
           rows={3}
           className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium">Image</label>
-        {imageUrl && <p className="mb-1 text-xs text-zinc-500">Current: set</p>}
-        <input
-          type="file"
-          name="image"
-          accept="image/*"
-          className="w-full text-sm"
         />
       </div>
       <div className="flex gap-3">

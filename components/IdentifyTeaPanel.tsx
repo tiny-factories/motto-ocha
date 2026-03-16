@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { AddToList } from "@/components/AddToList";
 
 type Match = {
@@ -11,7 +10,6 @@ type Match = {
     slug: string;
     nameNative: string;
     nameEnglish: string | null;
-    imageUrl: string | null;
     farm: { nameNative: string; slug: string } | null;
     vendorTeas: { vendor: { id: string; name: string } }[];
   };
@@ -31,7 +29,6 @@ export function IdentifyTeaPanel() {
   const [loading, setLoading] = useState(false);
   const [barcodeSupported, setBarcodeSupported] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [scanStatus, setScanStatus] = useState<string | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
@@ -46,13 +43,12 @@ export function IdentifyTeaPanel() {
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
       if (intervalRef.current) window.clearInterval(intervalRef.current);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [previewUrl]);
+  }, []);
 
   const canSearch = useMemo(
     () => Boolean(text.trim() || normalizeBarcode(barcode)),
@@ -175,37 +171,6 @@ export function IdentifyTeaPanel() {
     setCameraOpen(false);
   }
 
-  async function handlePhotoUpload(file: File) {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    const nextPreview = URL.createObjectURL(file);
-    setPreviewUrl(nextPreview);
-    setScanStatus("Photo selected. Checking for barcode…");
-
-    if (!barcodeSupported) {
-      setScanStatus(
-        "Barcode auto-detection not supported here. Enter barcode/text manually."
-      );
-      return;
-    }
-
-    try {
-      const bitmap = await createImageBitmap(file);
-      const detected = await detectBarcodeFromSource(bitmap);
-      bitmap.close();
-      if (detected) {
-        setBarcode(detected);
-        setScanStatus(`Detected barcode from image: ${detected}`);
-        await identify({ barcode: detected });
-      } else {
-        setScanStatus(
-          "No barcode found. Enter label text (native language is fine) and search."
-        );
-      }
-    } catch {
-      setScanStatus("Could not process image. Try another photo.");
-    }
-  }
-
   return (
     <div className="space-y-8">
       <form
@@ -247,19 +212,6 @@ export function IdentifyTeaPanel() {
           >
             {loading ? "Identifying…" : "Find matching tea"}
           </button>
-          <label className="cursor-pointer rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800">
-            Take/upload photo
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handlePhotoUpload(file);
-              }}
-            />
-          </label>
           {barcodeSupported ? (
             <>
               {!cameraOpen ? (
@@ -299,11 +251,6 @@ export function IdentifyTeaPanel() {
             <video ref={videoRef} className="w-full bg-black" playsInline muted />
           </div>
         )}
-        {previewUrl && (
-          <div className="relative h-52 overflow-hidden rounded-md border border-zinc-300 dark:border-zinc-700">
-            <Image src={previewUrl} alt="Tea photo preview" fill className="object-cover" unoptimized />
-          </div>
-        )}
       </form>
 
       <section className="space-y-4">
@@ -312,7 +259,7 @@ export function IdentifyTeaPanel() {
         </h3>
         {matches.length === 0 ? (
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            No matches yet. Scan a barcode, upload a photo, or search by label text.
+            No matches yet. Scan a barcode or search by label text.
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">

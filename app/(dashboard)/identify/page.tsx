@@ -7,7 +7,7 @@ export default function IdentifyTeaPage() {
         Identify a tea
       </h1>
       <p className="mb-8 max-w-3xl text-zinc-600 dark:text-zinc-300">
-        Scan a barcode or take a package photo to quickly find the tea in the
+        Scan a barcode or search by label text to quickly find the tea in the
         catalog, then add it to your lists.
       </p>
       <IdentifyTeaPanel />

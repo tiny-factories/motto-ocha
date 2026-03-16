@@ -1,152 +1,171 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions, canAccessExpertData } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TeaCard } from "@/components/TeaCard";
-import { FarmCard } from "@/components/FarmCard";
+import { FeedCard } from "@/components/FeedCard";
+
+type FeedItem =
+  | {
+      type: "post";
+      id: string;
+      date: Date;
+      review: string | null;
+      rating: number | null;
+      createdAt: Date;
+      user: { name: string | null };
+      tea: { slug: string; nameEnglish: string | null; nameNative: string };
+      vendor: { name: string } | null;
+    }
+  | {
+      type: "tea";
+      date: Date;
+      slug: string;
+      nameNative: string;
+      nameEnglish: string | null;
+      createdAt: Date;
+      categoryLabel?: string | null;
+      vendorName?: string | null;
+    };
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const canViewRestrictedData = canAccessExpertData(role);
-
-  let teas: Awaited<ReturnType<typeof prisma.tea.findMany>> = [];
-  let farms: Awaited<ReturnType<typeof prisma.farm.findMany>> = [];
-  let vendors: Awaited<
-    ReturnType<
-      typeof prisma.vendor.findMany<{
-        include: { _count: { select: { teas: true } } };
-      }>
-    >
-  > = [];
-  let dbError = false;
+  let posts: Array<{
+    id: string;
+    review: string | null;
+    rating: number | null;
+    createdAt: Date;
+    user: { name: string | null };
+    tea: { slug: string; nameEnglish: string | null; nameNative: string };
+    vendor: { name: string } | null;
+  }> = [];
+  let newTeas: Array<{
+    slug: string;
+    nameNative: string;
+    nameEnglish: string | null;
+    createdAt: Date;
+    categoryLabel: string | null;
+    vendorName: string | null;
+  }> = [];
 
   try {
-    [teas, farms] = await Promise.all([
-      prisma.tea.findMany({
-        take: 6,
-        orderBy: { updatedAt: "desc" },
-        include: {
-          farm: { select: { nameNative: true, slug: true } },
-          vendorTeas: { include: { vendor: { select: { id: true, name: true } } } },
+    [posts, newTeas] = await Promise.all([
+      prisma.teaReview.findMany({
+        where: { isPublic: true },
+        orderBy: { createdAt: "desc" },
+        take: 60,
+        select: {
+          id: true,
+          review: true,
+          rating: true,
+          createdAt: true,
+          user: { select: { name: true } },
+          tea: {
+            select: { slug: true, nameEnglish: true, nameNative: true },
+          },
+          vendor: { select: { name: true } },
         },
       }),
-      prisma.farm.findMany({
-        take: 3,
-        orderBy: { nameNative: "asc" },
-        include: { _count: { select: { teas: true } } },
+      prisma.tea.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 40,
+        select: {
+          slug: true,
+          nameNative: true,
+          nameEnglish: true,
+          createdAt: true,
+          categoryAssignments: {
+            take: 1,
+            include: {
+              teaCategory: { select: { label: true } },
+            },
+          },
+          vendorTeas: {
+            take: 1,
+            include: { vendor: { select: { name: true } } },
+          },
+        },
       }),
     ]);
-    if (canViewRestrictedData) {
-      vendors = await prisma.vendor.findMany({
-        take: 6,
-        orderBy: { name: "asc" },
-        include: { _count: { select: { teas: true } } },
-      });
-    }
   } catch {
-    dbError = true;
+    // ignore DB errors
   }
 
+  const feedItems: FeedItem[] = [
+    ...posts.map((p) => ({
+      type: "post" as const,
+      id: p.id,
+      date: p.createdAt,
+      review: p.review,
+      rating: p.rating,
+      createdAt: p.createdAt,
+      user: p.user,
+      tea: p.tea,
+      vendor: p.vendor,
+    })),
+    ...newTeas.map((t) => ({
+      type: "tea" as const,
+      date: t.createdAt,
+      slug: t.slug,
+      nameNative: t.nameNative,
+      nameEnglish: t.nameEnglish,
+      createdAt: t.createdAt,
+      categoryLabel: t.categoryAssignments[0]?.teaCategory?.label ?? null,
+      vendorName: t.vendorTeas[0]?.vendor?.name ?? null,
+    })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      {dbError && (
-        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-          Database is not connected. Start PostgreSQL (e.g.{" "}
-          <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/50">
-            docker compose up -d postgres
-          </code>
-          ) and set <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/50">DATABASE_URL</code> in{" "}
-          <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/50">.env</code> to{" "}
-          <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/50">postgresql://motto:motto@localhost:5432/motto_ocha</code>, then run{" "}
-          <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/50">npx prisma migrate deploy</code>.
-        </div>
-      )}
-      <section className="mb-16 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Motto Ocha
-        </h1>
-        <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">
-          Tea index — farms, vendors, and teas. Native names, English labels.
-        </p>
-      </section>
+    <div className="flex flex-col">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        Feed
+      </h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Public posts and new teas. Log a tea and share to feed to appear here.
+      </p>
 
-      <section className="mb-12">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-            Recent teas
-          </h2>
+      {feedItems.length === 0 ? (
+        <div className="mt-10 rounded-lg border border-card-border bg-warm-highlight p-8 text-center">
+          <p className="text-muted-foreground">
+            No public posts or teas yet. Log a tea and check &ldquo;Share to
+            feed&rdquo; on a tea page to show it here.
+          </p>
           <Link
-            href="/teas"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            href="/log"
+            className="mt-4 inline-block text-sm font-medium text-accent hover:underline"
           >
-            View all
+            Log a tea →
           </Link>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {teas.map((tea) => (
-            <TeaCard key={tea.id} tea={tea} />
-          ))}
-        </div>
-      </section>
-
-      <section className="mb-12">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-            Farms
-          </h2>
-          <Link
-            href="/farms"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            View all
-          </Link>
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {farms.map((farm) => (
-            <FarmCard key={farm.id} farm={farm} />
-          ))}
-        </div>
-      </section>
-
-      {canViewRestrictedData && (
-        <section>
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-              Vendors
-            </h2>
-            <Link
-              href="/vendors"
-              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            >
-              View all
-            </Link>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {vendors.map((vendor) => (
-              <Link
-                key={vendor.id}
-                href={`/vendors/${vendor.id}`}
-                className="block rounded-lg border border-zinc-200 bg-white p-6 transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
-              >
-                <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
-                  {vendor.name}
-                </h3>
-                {vendor.description && (
-                  <p className="mt-1 line-clamp-2 text-sm text-zinc-500 dark:text-zinc-400">
-                    {vendor.description}
-                  </p>
-                )}
-                <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
-                  {vendor._count.teas} tea{vendor._count.teas !== 1 ? "s" : ""}
-                </p>
-              </Link>
-            ))}
-          </div>
-          {vendors.length === 0 && (
-            <p className="text-zinc-500 dark:text-zinc-400">No vendors yet.</p>
+      ) : (
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+          {feedItems.map((item) =>
+            item.type === "post" ? (
+              <FeedCard
+                key={`post-${item.id}`}
+                item={{
+                  type: "post",
+                  id: item.id,
+                  review: item.review,
+                  rating: item.rating,
+                  createdAt: item.createdAt,
+                  user: item.user,
+                  tea: item.tea,
+                  vendor: item.vendor,
+                }}
+              />
+            ) : (
+              <FeedCard
+                key={`tea-${item.slug}`}
+                item={{
+                  type: "tea",
+                  slug: item.slug,
+                  nameNative: item.nameNative,
+                  nameEnglish: item.nameEnglish,
+                  createdAt: item.createdAt,
+                  categoryLabel: item.categoryLabel,
+                  vendorName: item.vendorName,
+                }}
+              />
+            )
           )}
-        </section>
+        </div>
       )}
     </div>
   );

@@ -67,20 +67,9 @@ export default async function VendorsPage() {
             >
               <div className="flex flex-1 flex-col">
                 <div className="mb-3 flex items-center gap-3">
-                  {vendor.logoUrl ? (
-                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={vendor.logoUrl}
-                        alt=""
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-lg font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                      {vendor.name.charAt(0)}
-                    </div>
-                  )}
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-lg font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                    {vendor.name.charAt(0)}
+                  </div>
                   <h2 className="font-semibold text-zinc-900 group-hover:underline dark:text-zinc-100">
                     {vendor.name}
                   </h2>

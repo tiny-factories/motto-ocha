@@ -1,11 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
 
 type Tea = {
   slug: string;
   nameNative: string;
   nameEnglish: string | null;
-  imageUrl: string | null;
   year?: number | null;
   farm?: { nameNative: string; slug: string } | null;
   vendorTeas?: { vendor: { id: string; name: string } }[];
@@ -13,71 +11,50 @@ type Tea = {
   categoryAssignments?: { teaCategory: { id: string; label: string } }[];
 };
 
-export function TeaCard({
-  tea,
-  showVendorInfo = false,
-}: {
-  tea: Tea;
-  showVendorInfo?: boolean;
-}) {
-  const categories = tea.categoryAssignments?.map((a) => a.teaCategory.label) ?? [];
-  const tasteLabels = tea.teaTasteTags?.map((tt) => tt.tasteTag.label) ?? [];
+export function TeaCard({ tea }: { tea: Tea }) {
+  const categories =
+    tea.categoryAssignments?.map((a) => a.teaCategory.label) ?? [];
+  const tasteLabels =
+    tea.teaTasteTags?.map((tt) => tt.tasteTag.label) ?? [];
+  const vendor = tea.vendorTeas?.[0]?.vendor?.name;
 
   return (
     <Link
       href={`/teas/${tea.slug}`}
-      className="group block overflow-hidden rounded-lg border border-zinc-200 bg-white transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+      className="group block overflow-hidden rounded-xl border border-card-border bg-card transition-all hover:border-accent/30 hover:shadow-md"
     >
-      <div className="aspect-[4/3] relative bg-zinc-100 dark:bg-zinc-800">
-        {tea.imageUrl ? (
-          <Image
-            src={tea.imageUrl}
-            alt={tea.nameEnglish ?? tea.nameNative}
-            fill
-            className="object-cover transition group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 33vw"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-zinc-400 dark:text-zinc-500">
-            No image
-          </div>
-        )}
+      <div className="flex aspect-[5/3] items-center justify-center bg-warm-highlight">
+        <span className="text-3xl font-medium text-accent/40" aria-hidden>
+          {tea.nameNative.charAt(0)}
+        </span>
       </div>
       <div className="p-4">
-        <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
+        <h3 className="font-medium text-foreground transition-colors group-hover:text-accent">
           {tea.nameNative}
         </h3>
         {tea.nameEnglish && (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {tea.nameEnglish}
-          </p>
+          <p className="text-sm text-muted-foreground">{tea.nameEnglish}</p>
         )}
-        {(categories.length > 0 || tea.year) && (
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            {categories.slice(0, 2).join(", ")}
-            {tea.year && (categories.length > 0 ? ` · ${tea.year}` : `${tea.year} harvest`)}
-          </p>
-        )}
-        {(tea.farm || (showVendorInfo && tea.vendorTeas && tea.vendorTeas.length > 0)) && (
-          <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-            {tea.farm && (
-              <Link
-                href={`/farms/${tea.farm.slug}`}
-                className="hover:underline"
-                onClick={(e) => e.stopPropagation()}
+        {(categories.length > 0 || vendor) && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {categories.slice(0, 2).map((cat) => (
+              <span
+                key={cat}
+                className="rounded-full bg-accent-light px-2 py-0.5 text-[11px] font-medium text-accent"
               >
-                {tea.farm.nameNative}
-              </Link>
+                {cat}
+              </span>
+            ))}
+            {vendor && (
+              <span className="rounded-full border border-card-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                {vendor}
+              </span>
             )}
-            {tea.farm && showVendorInfo && tea.vendorTeas?.length ? " · " : null}
-            {showVendorInfo && tea.vendorTeas?.length
-              ? tea.vendorTeas.map((vt) => vt.vendor.name).join(", ")
-              : null}
-          </p>
+          </div>
         )}
         {tasteLabels.length > 0 && (
-          <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
-            {tasteLabels.slice(0, 3).join(", ")}
+          <p className="mt-1.5 text-xs text-muted">
+            {tasteLabels.slice(0, 3).join(" · ")}
           </p>
         )}
       </div>

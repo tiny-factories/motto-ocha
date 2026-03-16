@@ -30,12 +30,11 @@ export function VendorForm({ vendor }: VendorFormProps) {
     const form = e.currentTarget;
     const formData = new FormData(form);
     const name = formData.get("name") as string;
-    const logoUrl = (formData.get("logoUrl") as string) || null;
     const url = (formData.get("url") as string) || null;
     const description = (formData.get("description") as string) || null;
     const scale = (formData.get("scale") as string) || null;
     try {
-      const body = { name, logoUrl, url, description, scale };
+      const body = { name, logoUrl: null, url, description, scale };
       const urlPath = vendor ? `/api/admin/vendors/${vendor.id}` : "/api/admin/vendors";
       const res = await fetch(urlPath, {
         method: vendor ? "PATCH" : "POST",
@@ -63,16 +62,6 @@ export function VendorForm({ vendor }: VendorFormProps) {
           name="name"
           defaultValue={vendor?.name}
           required
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium">Logo URL</label>
-        <input
-          name="logoUrl"
-          type="url"
-          defaultValue={vendor?.logoUrl ?? ""}
-          placeholder="https://..."
           className="w-full rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
         />
       </div>

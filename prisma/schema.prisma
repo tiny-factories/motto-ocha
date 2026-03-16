@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  relationLoadStrategy = "join"
 }
 
 datasource db {
@@ -247,22 +248,25 @@ model TeaBarcode {
 }
 
 model TeaReview {
-  id           String   @id @default(cuid())
-  userId       String
-  teaId        String
-  vendorId     String?
-  rating       Int?
-  review       String?  @db.Text
-  locationName String?
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tea          Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
-  vendor       Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(cuid())
+  userId           String
+  teaId            String
+  vendorId         String?
+  rating           Int?
+  review           String?  @db.Text
+  locationName     String?
+  conversationLog  Json?    // Chat messages that led to this log (role, content, hasImage)
+  isPublic         Boolean  @default(false) // If true, appears in home feed for others (read.cv style)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tea              Tea      @relation(fields: [teaId], references: [id], onDelete: Cascade)
+  vendor           Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@unique([userId, teaId])
   @@index([teaId])
   @@index([vendorId])
+  @@index([isPublic])
 }
 
 model TeaBrewGuide {

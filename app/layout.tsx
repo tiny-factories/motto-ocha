@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -14,21 +16,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Motto Ocha – Tea Index",
-  description: "Index of tea vendors, farms, and teas. Track what you've tried and want to try.",
+  title: "Motto Ocha – Your Tea Journal",
+  description:
+    "Log the teas you drink. Describe it, we'll organize it. Build your personal tea library.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession(authOptions);
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers session={session}>{children}</Providers>
       </body>
     </html>
   );

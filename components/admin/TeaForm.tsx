@@ -81,27 +81,6 @@ type TeaFormProps = {
 export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [imageUrl, setImageUrl] = useState(tea?.imageUrl ?? "");
-  const [teaModelUrl, setTeaModelUrl] = useState(tea?.teaModelUrl ?? "");
-  const [packagingModelUrl, setPackagingModelUrl] = useState(
-    tea?.packagingModelUrl ?? ""
-  );
-
-  async function uploadFile(
-    file: File,
-    prefix: string
-  ): Promise<string> {
-    const form = new FormData();
-    form.set("file", file);
-    form.set("prefix", prefix);
-    const res = await fetch("/api/admin/upload", {
-      method: "POST",
-      body: form,
-    });
-    if (!res.ok) throw new Error("Upload failed");
-    const data = await res.json();
-    return data.url;
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -153,25 +132,7 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
         ? null
         : Number.parseInt(defaultTemperatureCRaw, 10);
 
-    const imageFile = formData.get("image") as File | null;
-    const teaModelFile = formData.get("teaModel") as File | null;
-    const packagingFile = formData.get("packagingModel") as File | null;
-
     try {
-      let finalImageUrl = imageUrl;
-      let finalTeaModelUrl = teaModelUrl;
-      let finalPackagingUrl = packagingModelUrl;
-
-      if (imageFile?.size) {
-        finalImageUrl = await uploadFile(imageFile, "teas");
-      }
-      if (teaModelFile?.size) {
-        finalTeaModelUrl = await uploadFile(teaModelFile, "models");
-      }
-      if (packagingFile?.size) {
-        finalPackagingUrl = await uploadFile(packagingFile, "models");
-      }
-
       const body = {
         nameNative,
         nameEnglish,
@@ -182,9 +143,9 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
         prefecture,
         farmId: farmId || null,
         vendorIds: vendorIds.filter(Boolean),
-        imageUrl: finalImageUrl || null,
-        teaModelUrl: finalTeaModelUrl || null,
-        packagingModelUrl: finalPackagingUrl || null,
+        imageUrl: null,
+        teaModelUrl: tea?.teaModelUrl ?? null,
+        packagingModelUrl: tea?.packagingModelUrl ?? null,
         singleOrigin,
         scale,
         year,
@@ -520,42 +481,6 @@ export function TeaForm({ tea, farms, vendors, tasteTags, teaCategories }: TeaFo
           </p>
         </div>
       )}
-      <div>
-        <label className="mb-1 block text-sm font-medium">Image</label>
-        {imageUrl && (
-          <p className="mb-1 text-xs text-zinc-500">Current: {imageUrl}</p>
-        )}
-        <input
-          type="file"
-          name="image"
-          accept="image/*"
-          className="w-full text-sm"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium">3D tea model (GLB)</label>
-        {teaModelUrl && (
-          <p className="mb-1 text-xs text-zinc-500">Current: set</p>
-        )}
-        <input
-          type="file"
-          name="teaModel"
-          accept=".glb,.gltf"
-          className="w-full text-sm"
-        />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium">3D packaging model (GLB)</label>
-        {packagingModelUrl && (
-          <p className="mb-1 text-xs text-zinc-500">Current: set</p>
-        )}
-        <input
-          type="file"
-          name="packagingModel"
-          accept=".glb,.gltf"
-          className="w-full text-sm"
-        />
-      </div>
       <div className="flex gap-3">
         <button
           type="submit"

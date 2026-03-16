@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { TeaCard } from "@/components/TeaCard";
 
@@ -26,21 +25,10 @@ export default async function FarmDetailPage({
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-start">
-        <div className="aspect-video w-full max-w-md overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-          {farm.imageUrl ? (
-            <Image
-              src={farm.imageUrl}
-              alt={farm.nameEnglish ?? farm.nameNative}
-              width={400}
-              height={225}
-              className="h-full w-full object-cover"
-              unoptimized
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-zinc-400 dark:text-zinc-500">
-              No image
-            </div>
-          )}
+        <div className="aspect-video w-full max-w-md flex items-center justify-center overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+          <span className="text-4xl font-medium text-zinc-400 dark:text-zinc-500" aria-hidden>
+            {farm.nameNative.charAt(0)}
+          </span>
         </div>
         <div>
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">

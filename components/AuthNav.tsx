@@ -7,14 +7,14 @@ export function AuthNav() {
   const { data: session, status } = useSession();
 
   if (status === "loading") {
-    return <span className="text-sm text-zinc-400">…</span>;
+    return <span className="text-sm text-muted">…</span>;
   }
 
   if (!session) {
     return (
       <Link
         href="/login"
-        className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        className="rounded-md bg-accent px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
       >
         Sign in
       </Link>
@@ -29,7 +29,7 @@ export function AuthNav() {
       {isAdmin && (
         <Link
           href="/admin"
-          className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           Admin
         </Link>
@@ -37,7 +37,7 @@ export function AuthNav() {
       <button
         type="button"
         onClick={() => signOut()}
-        className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         Sign out
       </button>

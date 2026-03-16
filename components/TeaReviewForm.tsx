@@ -15,6 +15,7 @@ type ApiReview = {
   review: string | null;
   locationName: string | null;
   vendorId: string | null;
+  isPublic?: boolean;
 };
 
 export function TeaReviewForm({
@@ -29,6 +30,7 @@ export function TeaReviewForm({
   const [review, setReview] = useState("");
   const [locationName, setLocationName] = useState("");
   const [vendorId, setVendorId] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,10 +53,21 @@ export function TeaReviewForm({
         }
         const reviewData = data.review as ApiReview | null;
         if (cancelled) return;
-        setRating(reviewData?.rating ? String(reviewData.rating) : "");
+        // Normalize: 0 or null = no rating; legacy 1–5 map to 1–3 for display
+        const r = reviewData?.rating;
+        const normalized =
+          r == null || r === 0
+            ? ""
+            : r <= 3
+              ? String(r)
+              : r <= 5
+                ? "3"
+                : "";
+        setRating(normalized);
         setReview(reviewData?.review ?? "");
         setLocationName(reviewData?.locationName ?? "");
         setVendorId(reviewData?.vendorId ?? "");
+        setIsPublic(reviewData?.isPublic ?? false);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load review");
@@ -80,6 +93,7 @@ export function TeaReviewForm({
         review: review || null,
         locationName: locationName || null,
         vendorId: allowVendorSelection ? vendorId || null : null,
+        isPublic,
       };
       const res = await fetch(`/api/teas/${teaId}/review`, {
         method: "PUT",
@@ -92,7 +106,7 @@ export function TeaReviewForm({
           typeof data.error === "string" ? data.error : "Failed to save review"
         );
       }
-      setMessage("Saved your tea notes.");
+      setMessage("Saved!");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save review");
     } finally {
@@ -101,49 +115,63 @@ export function TeaReviewForm({
   }
 
   if (status === "loading" || loading) {
-    return <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading your notes…</p>;
+    return (
+      <p className="text-sm text-muted-foreground">Loading your notes…</p>
+    );
   }
 
   if (!session) {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        <Link href="/login" className="underline hover:no-underline">
+      <p className="text-sm text-muted-foreground">
+        <Link href="/login" className="font-medium text-accent hover:underline">
           Sign in
         </Link>{" "}
-        to add a review and where you drank or bought this tea.
+        to add your notes on this tea.
       </p>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
             Rating
           </label>
-          <select
-            value={rating}
-            onChange={(e) => setRating(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
-          >
-            <option value="">No rating</option>
-            <option value="1">1 - Not for me</option>
-            <option value="2">2 - Okay</option>
-            <option value="3">3 - Good</option>
-            <option value="4">4 - Great</option>
-            <option value="5">5 - Favorite</option>
-          </select>
+          <div className="flex items-center gap-2" role="group" aria-label="Tea cup rating 0 to 3">
+            {(["", "1", "2", "3"] as const).map((v) => (
+              <button
+                key={v === "" ? "none" : v}
+                type="button"
+                onClick={() => setRating(v)}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-base transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 ${
+                  rating === v
+                    ? "border-accent bg-accent-light text-accent"
+                    : "border-card-border bg-background text-muted-foreground hover:border-accent/50 hover:text-foreground"
+                }`}
+                title={v === "" ? "No rating" : `${v} cup${v === "1" ? "" : "s"}`}
+              >
+                {v === "" ? (
+                  <span className="text-xs font-medium">—</span>
+                ) : (
+                  <span aria-hidden>🍵</span>
+                )}
+              </button>
+            ))}
+            <span className="text-xs text-muted-foreground">
+              {rating === "" ? "No rating" : `${rating} cup${rating === "1" ? "" : "s"}`}
+            </span>
+          </div>
         </div>
         {allowVendorSelection && (
           <div>
-            <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
               Vendor / brand
             </label>
             <select
               value={vendorId}
               onChange={(e) => setVendorId(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              className="w-full rounded-lg border border-card-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             >
               <option value="">Not specified</option>
               {vendors.map((vendor) => (
@@ -157,37 +185,54 @@ export function TeaReviewForm({
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Location (cafe/shop)
+        <label className="mb-1.5 block text-sm font-medium text-foreground">
+          Where you had it
         </label>
         <input
           value={locationName}
           onChange={(e) => setLocationName(e.target.value)}
-          placeholder="e.g. Kissa Saryo - Kyoto"
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          placeholder="e.g. Kissa Saryo — Kyoto"
+          className="w-full rounded-lg border border-card-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="isPublic"
+          checked={isPublic}
+          onChange={(e) => setIsPublic(e.target.checked)}
+          className="h-4 w-4 rounded border-card-border text-accent focus:ring-accent"
+        />
+        <label htmlFor="isPublic" className="text-sm text-foreground">
+          Share to feed (others can see this log)
+        </label>
+      </div>
+
       <div>
-        <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Review notes
+        <label className="mb-1.5 block text-sm font-medium text-foreground">
+          Notes
         </label>
         <textarea
           value={review}
           onChange={(e) => setReview(e.target.value)}
-          rows={4}
-          placeholder="Flavor, aroma, brew method, and whether you would drink it again."
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+          rows={3}
+          placeholder="What did it taste like? Would you drink it again?"
+          className="w-full resize-none rounded-lg border border-card-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
-      {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
-      {message && <p className="text-sm text-emerald-600 dark:text-emerald-400">{message}</p>}
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
+      {message && (
+        <p className="text-sm text-accent">{message}</p>
+      )}
 
       <button
         type="submit"
         disabled={saving}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
       >
         {saving ? "Saving…" : "Save notes"}
       </button>

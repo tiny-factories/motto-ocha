@@ -1,63 +1,46 @@
 import Link from "next/link";
 import { AuthNav } from "@/components/AuthNav";
 import { getServerSession } from "next-auth";
-import { authOptions, canAccessExpertData } from "@/lib/auth";
+import { authOptions } from "@/lib/auth";
 
 export async function Header() {
   const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const canAccessRestrictedData = canAccessExpertData(role);
 
   return (
-    <header className="border-b border-zinc-200 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
+    <header className="border-b border-card-border bg-card/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link
-          href="/"
-          className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+          href={session ? "/log" : "/"}
+          className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground"
         >
+          <span className="text-accent" aria-hidden>
+            茶
+          </span>
           Motto Ocha
         </Link>
-        <nav className="flex items-center gap-6 text-sm">
+        <nav className="flex items-center gap-5 text-sm">
           <Link
             href="/teas"
-            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            Teas
+            Browse
           </Link>
-          <Link
-            href="/farms"
-            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            Farms
-          </Link>
-          {canAccessRestrictedData && (
+          {session && (
             <Link
-              href="/vendors"
-              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              href="/log"
+              className="text-muted-foreground transition-colors hover:text-foreground"
             >
-              Vendors
+              Log a tea
             </Link>
           )}
-          {canAccessRestrictedData && (
+          {session && (
             <Link
-              href="/mocktails"
-              className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              href="/my-lists"
+              className="text-muted-foreground transition-colors hover:text-foreground"
             >
-              Mocktails
+              My lists
             </Link>
           )}
-          <Link
-            href="/my-lists"
-            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            My lists
-          </Link>
-          <Link
-            href="/identify"
-            className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            Identify
-          </Link>
           <AuthNav />
         </nav>
       </div>

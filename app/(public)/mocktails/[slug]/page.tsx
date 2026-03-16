@@ -9,6 +9,7 @@ export default async function MocktailDetailPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
   const session = await getServerSession(authOptions);
   if (!session) {
     redirect("/login");
@@ -17,8 +18,6 @@ export default async function MocktailDetailPage({
   if (!canAccessExpertData(role)) {
     redirect("/");
   }
-
-  const { slug } = await params;
   const mocktail = await prisma.mocktail.findUnique({
     where: { slug },
     include: {
